@@ -1,11 +1,11 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading
 
-_Simulator only. No real money, no exchange account, no API keys. Last updated: 2026-08-31T12:44:06.183090+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Last updated: 2026-08-31T12:48:20.414469+00:00_
 
 ## Current State
 
 - Equity: **10407.63 USDT** (started at 10000.00)
-- Last processed bar: 2026-08-31 12:15:00+00:00
+- Last processed bar: 2026-08-31 12:30:00+00:00
 - Position: **LONG** 0.006697 BTC @ 77682.01 (SL 77243.99, TP1 78339.01, TP2 78996.03, TP1 filled: True)
 
 ## All-Time Stats (backtest + live combined)
