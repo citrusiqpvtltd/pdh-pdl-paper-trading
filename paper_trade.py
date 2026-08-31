@@ -46,7 +46,10 @@ STATUS_FILE = "STATUS.md"
 
 SYMBOL = "BTCUSDT"
 INTERVAL = "15m"
-BASE_URL = "https://api.binance.com/api/v3/klines"
+# data-api.binance.vision is Binance's dedicated, geo-unrestricted public
+# market-data mirror - api.binance.com returns HTTP 451 from US-hosted
+# infrastructure (including GitHub Actions' ubuntu-latest runners).
+BASE_URL = "https://data-api.binance.vision/api/v3/klines"
 HISTORY_START = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
 # Tuned, live-validated config (see README.md for how these were chosen)
