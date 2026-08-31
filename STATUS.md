@@ -1,24 +1,25 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading
 
-_Simulator only. No real money, no exchange account, no API keys. Last updated: 2026-08-31T12:48:20.414469+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Last updated: 2026-08-31T19:18:38.836365+00:00_
 
 ## Current State
 
-- Equity: **10407.63 USDT** (started at 10000.00)
-- Last processed bar: 2026-08-31 12:30:00+00:00
-- Position: **LONG** 0.006697 BTC @ 77682.01 (SL 77243.99, TP1 78339.01, TP2 78996.03, TP1 filled: True)
+- Equity: **10416.16 USDT** (started at 10000.00)
+- Last processed bar: 2026-08-31 19:00:00+00:00
+- Position: **flat**
 
 ## All-Time Stats (backtest + live combined)
 
-- Total trades: 355
-- Win rate: 55.21%
-- Total PnL: 407.89 USDT (4.08%)
-- Profit factor: 1.483
+- Total trades: 356
+- Win rate: 55.34%
+- Total PnL: 416.16 USDT (4.16%)
+- Profit factor: 1.493
 
 ## Most Recent Trades
 
 | Entry time | Side | Exit reason | Entry | Exit | PnL |
 |---|---|---|---|---|---|
+| 2026-08-30 23:45:00 | long | TP2 | 77682.01 | 78996.03 | 8.27 |
 | 2026-08-30 23:45:00 | long | TP1 | 77682.01 | 78339.01 | 3.88 |
 | 2026-08-16 09:30:00 | short | SL | 62999.99 | 63158.86 | -3.67 |
 | 2026-07-31 01:30:00 | short | TP2 | 64824.60 | 64334.29 | 3.42 |
@@ -33,4 +34,3 @@ _Simulator only. No real money, no exchange account, no API keys. Last updated: 
 | 2026-07-13 00:30:00 | short | TP1 | 63785.99 | 63059.93 | 5.40 |
 | 2026-07-12 09:30:00 | long | SL | 64007.92 | 63640.77 | -7.01 |
 | 2026-07-08 02:30:00 | long | SL | 62972.01 | 62623.69 | -6.80 |
-| 2026-07-06 15:00:00 | long | TP2 | 62484.02 | 63775.56 | 10.22 |
