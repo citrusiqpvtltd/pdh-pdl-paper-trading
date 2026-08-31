@@ -1,36 +1,16 @@
-# PDH/PDL Confluence Reversal — Live Paper Trading
+# PDH/PDL Reversal — Live Paper Trading (LLM-decided entries)
 
-_Simulator only. No real money, no exchange account, no API keys. Last updated: 2026-08-31T23:15:27.716882+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Entries are judged live by a local Ollama model (llama3.2:3b), not the fixed rule-based score. **This decision logic is unvalidated / experimental** - see README. Last updated: 2026-08-31T23:36:17.832427+00:00_
 
 ## Current State
 
-- Equity: **10416.16 USDT** (started at 10000.00)
-- Last processed bar: 2026-08-31 23:00:00+00:00
+- Equity: **10000.00 USDT** (started at 10000.00)
+- Last processed bar: 2026-08-31 23:30:00+00:00
 - Position: **flat**
 
-## All-Time Stats (backtest + live combined)
+No trades closed yet under the LLM-decided engine.
 
-- Total trades: 356
-- Win rate: 55.34%
-- Total PnL: 416.16 USDT (4.16%)
-- Profit factor: 1.493
 
-## Most Recent Trades
+## Reference: prior validated rule-based backtest
 
-| Entry time | Side | Exit reason | Entry | Exit | PnL |
-|---|---|---|---|---|---|
-| 2026-08-30 23:45:00 | long | TP2 | 77682.01 | 78996.03 | 8.27 |
-| 2026-08-30 23:45:00 | long | TP1 | 77682.01 | 78339.01 | 3.88 |
-| 2026-08-16 09:30:00 | short | SL | 62999.99 | 63158.86 | -3.67 |
-| 2026-07-31 01:30:00 | short | TP2 | 64824.60 | 64334.29 | 3.42 |
-| 2026-07-31 01:30:00 | short | TP1 | 64824.60 | 64579.45 | 1.45 |
-| 2026-07-29 16:30:00 | short | SL | 63695.09 | 64718.93 | -17.80 |
-| 2026-07-27 13:45:00 | short | TP2 | 65217.36 | 64573.33 | 4.62 |
-| 2026-07-27 13:45:00 | short | TP1 | 65217.36 | 64895.35 | 2.05 |
-| 2026-07-26 04:45:00 | short | SL | 64530.05 | 64612.71 | -1.19 |
-| 2026-07-26 04:45:00 | short | TP1 | 64530.05 | 64406.09 | 0.48 |
-| 2026-07-23 02:30:00 | long | SL | 65780.01 | 65691.87 | -2.44 |
-| 2026-07-13 00:30:00 | short | TP2 | 63785.99 | 62333.85 | 11.32 |
-| 2026-07-13 00:30:00 | short | TP1 | 63785.99 | 63059.93 | 5.40 |
-| 2026-07-12 09:30:00 | long | SL | 64007.92 | 63640.77 | -7.01 |
-| 2026-07-08 02:30:00 | long | SL | 62972.01 | 62623.69 | -6.80 |
+See `data/trades_rulebased_archive.csv` - the fixed-rule engine this replaced, validated over 4.67 years of history (355 trades, profit factor 1.483, +4.08%, profitable in all 5 calendar years). That validation does **not** carry over to this LLM-decided engine.

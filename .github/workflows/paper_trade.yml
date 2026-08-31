@@ -1,11 +1,12 @@
-name: Paper Trade
+name: Paper Trade (LLM-decided entries)
 
 on:
   schedule:
-    # Every 15 minutes, matching the strategy's own timeframe. GitHub's
-    # scheduler is best-effort and can run a few minutes late - the script
-    # processes every closed bar since its last run, not just the latest
-    # one, so an occasional late/skipped tick causes no lost data.
+    # GitHub's scheduler is best-effort - observed cadence on this repo has
+    # been closer to every 3-4 hours than every 15 minutes, especially soon
+    # after a workflow is added. The script processes every closed bar
+    # since its last run, not just the latest one, so a delayed or skipped
+    # tick causes no lost data - only staler STATUS.md between runs.
     - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
@@ -19,6 +20,11 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # Installing Ollama + pulling the model fresh every run (no persistent
+    # host to keep it running on) plus local inference adds real minutes
+    # over the old rule-based version - bound it so a stuck pull/inference
+    # fails the run instead of burning the whole Actions minute budget.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +33,20 @@ jobs:
           python-version: "3.12"
 
       - run: pip install -r requirements.txt
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama server
+        run: |
+          nohup ollama serve > ollama.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags > /dev/null && break
+            sleep 1
+          done
+
+      - name: Pull model
+        run: ollama pull llama3.2:3b
 
       - run: python paper_trade.py
 

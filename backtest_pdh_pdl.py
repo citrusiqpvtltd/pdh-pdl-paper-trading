@@ -213,8 +213,8 @@ def compute_indicators(df: pd.DataFrame, zone_pct=ZONE_PCT, htf_rule=HTF_RULE, h
 
 def prepare_arrays(df: pd.DataFrame) -> dict:
     """Pull every column run/step needs into plain numpy arrays once, up front."""
-    cols = ["open", "high", "low", "close", "pdh", "pdl", "zone_dist_pdh", "zone_dist_pdl",
-            "atr", "near_pdh", "near_pdl", "bearish_candle", "bullish_candle", "bull_flag",
+    cols = ["open", "high", "low", "close", "volume", "pdh", "pdl", "zone_dist_pdh", "zone_dist_pdl",
+            "atr", "rsi", "vol_ma", "near_pdh", "near_pdl", "bearish_candle", "bullish_candle", "bull_flag",
             "bear_flag", "failed_breakout_pdh", "failed_breakdown_pdl", "vol_confirm",
             "momentum_bear", "momentum_bull", "htf_trend_up", "strong_break_up",
             "strong_break_down", "new_day", "ph_confirmed", "pl_confirmed", "ph_peak_val",
