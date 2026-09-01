@@ -19,7 +19,7 @@
   "buy_fired": true,
   "equity": 100.04189139073787,
   "position": null,
-  "last_processed_index": 163652,
+  "last_processed_index": 163656,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "qwen2.5:7b"
