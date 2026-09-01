@@ -1,11 +1,11 @@
 # PDH/PDL Reversal — Live Paper Trading (LLM-decided entries)
 
-_Simulator only. No real money, no exchange account, no API keys. Entries are judged live by a local Ollama model (llama3.2:3b), not the fixed rule-based score. **This decision logic is unvalidated / experimental** - see README. Last updated: 2026-09-01T00:47:40.091960+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Entries are judged live by a local Ollama model (llama3.2:3b), not the fixed rule-based score. **This decision logic is unvalidated / experimental** - see README. Last updated: 2026-09-01T01:56:01.168689+00:00_
 
 ## Current State
 
 - Equity: **100.00 USDT** (started at 100.00)
-- Last processed bar: 2026-09-01 00:30:00+00:00
+- Last processed bar: 2026-09-01 01:30:00+00:00
 - Position: **flat**
 
 No trades closed yet under the LLM-decided engine.
