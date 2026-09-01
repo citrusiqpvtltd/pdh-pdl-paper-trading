@@ -1,0 +1,50 @@
+name: Backtest LLM engine (one-off, read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many most-recent days of history to replay through the real LLM"
+        required: false
+        default: "2"
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama server
+        run: |
+          nohup ollama serve > ollama.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags > /dev/null && break
+            sleep 1
+          done
+
+      - name: Pull model
+        run: ollama pull llama3.2:3b
+
+      - name: Run backtest
+        run: python backtest_llm.py --days "${{ github.event.inputs.days }}"
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-llm-results
+          path: |
+            backtest_llm_trades.csv
+            backtest_llm_decisions.csv
