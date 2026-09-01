@@ -7,7 +7,7 @@
   "buy_fired": false,
   "equity": 100.0,
   "position": null,
-  "last_processed_index": 163577,
+  "last_processed_index": 163581,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "llama3.2:3b"
