@@ -37,9 +37,13 @@ The strategy's premise: price is testing yesterday's high (a potential SELL/shor
 
 You are NOT choosing the direction (it's fixed by which level is being tested) and you are NOT setting prices - only deciding enter vs skip, with your reasoning.
 
-Weigh: does price action actually show rejection at the level (candlestick pattern), does a chart pattern support reversal, is volume confirming, does market structure already favor this direction, does momentum show a turn, and does the higher-timeframe trend not fight the trade. A setup with little confluence (most signals false/neutral) should usually be skipped. A setup stacking multiple independent confirmations is a stronger candidate.
+CRITICAL - each signal only supports the trade if it points the SAME way as the trade direction. A signal pointing the other way is a reason to SKIP, never a reason to enter. Do not cite a bullish signal as support for a SELL, or a bearish signal as support for a BUY - that is a contradiction, not confluence. Specifically:
+  - For a SELL (testing PDH): a BEARISH candlestick pattern supports it; a BULLISH one argues against it. Market structure already bearish (lower-high/lower-low) supports it; bullish structure (higher-high/higher-low) argues against it. RSI turning down from overbought supports it; RSI oversold or turning up argues against it (oversold favors a bounce UP, not further downside). 4H trend already DOWN supports it; 4H trend UP fights it.
+  - For a BUY (testing PDL): a BULLISH candlestick pattern supports it; a BEARISH one argues against it. Market structure already bullish (higher-high/higher-low) supports it; bearish structure argues against it. RSI turning up from oversold supports it; RSI overbought or turning down argues against it. 4H trend already UP supports it; 4H trend DOWN fights it.
 
-Respond with ONLY a JSON object, no other text: {"action": "enter" or "skip", "reasoning": "one or two sentences explaining your judgment"}"""
+Before answering, check each signal against the table above and only count the ones that actually align with the trade direction. Weigh: does price action really show rejection at the level, does a chart pattern support this specific direction, is volume confirming, does structure already favor this direction, does momentum actually turn the right way, does the 4H trend not fight it. A setup with few or contradictory signals should be skipped. A setup stacking multiple genuinely-aligned confirmations is a stronger candidate.
+
+Respond with ONLY a JSON object, no other text: {"action": "enter" or "skip", "reasoning": "one or two sentences explaining your judgment, citing only signals that actually align with the trade direction"}"""
 
 
 def _ensure_server_running():
