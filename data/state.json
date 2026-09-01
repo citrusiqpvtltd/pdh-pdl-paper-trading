@@ -1,9 +1,11 @@
 {
   "pivot_high_vals": [
-    79220.61
+    79220.61,
+    78424.0
   ],
   "pivot_high_bars": [
-    163602
+    163602,
+    163638
   ],
   "pivot_low_vals": [
     78189.93,
@@ -17,8 +19,8 @@
   "buy_fired": true,
   "equity": 100.04189139073787,
   "position": null,
-  "last_processed_index": 163645,
+  "last_processed_index": 163652,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
-  "model": "llama3.2:3b"
+  "model": "qwen2.5:7b"
 }
