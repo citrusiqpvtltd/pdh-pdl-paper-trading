@@ -23,12 +23,22 @@ which is a separate, larger effort. Everything in `data/trades.csv` from
 here forward is a live forward-test with no historical validation behind
 it. Watch `STATUS.md` over time to see how it actually performs.
 
+**Model history:** started on `llama3.2:3b`. Both a small backtest and the
+first few live decisions showed it justifying trades with directly
+contradictory reasoning (e.g. citing a bullish signal as support for a
+*short*, or a bearish one for a *long*) — consistently, not as a one-off,
+and it persisted even after adding an explicit per-direction consistency
+rule to the prompt (see `llm_decide.py`). Switched to `qwen2.5:7b` for
+meaningfully better instruction-following, at the cost of slower inference
+per call. Worth re-checking `data/llm_decisions.csv` periodically for
+whether this actually fixed it.
+
 ## How it works
 
 - `paper_trade.py` runs on a GitHub Actions schedule (`.github/workflows/paper_trade.yml`).
 - Each run pulls any newly-closed 15m BTCUSDT candles from Binance's free public market-data API and appends them to `data/btcusdt_15m.parquet`.
 - It recomputes technical indicators over the full dataset (ATR, RSI, MACD, pivots, candlestick/chart pattern proxies, market structure, 4H EMA trend filter — via `backtest_pdh_pdl.compute_indicators`, the same code the archived backtest used).
-- Whenever price is testing yesterday's high or low **and the bot is flat**, it hands that technical context — patterns, structure, volume, momentum, HTF trend, and the last 10 candles — to a **local Ollama model** (`llama3.2:3b`, installed fresh each run, no API key, no cost) and asks it to judge: is this specific setup worth taking, or skip? The model does not choose direction (fixed by which level is being tested) and does not set prices.
+- Whenever price is testing yesterday's high or low **and the bot is flat**, it hands that technical context — patterns, structure, volume, momentum, HTF trend, and the last 10 candles — to a **local Ollama model** (`qwen2.5:7b`, installed fresh each run, no API key, no cost) and asks it to judge: is this specific setup worth taking, or skip? The model does not choose direction (fixed by which level is being tested) and does not set prices.
 - If it says "enter", the same deterministic, previously-validated math computes the actual stop-loss and take-profit levels (Swing-based SL, 1.5R/3R partial take-profits) and manages the exit every subsequent bar — only the entry judgment moved to the model.
 - Trades and every LLM decision (including skips, with reasoning) are logged to `data/trades.csv` and `data/llm_decisions.csv`; `STATUS.md` is rewritten with a human-readable summary.
 - The workflow commits and pushes the updated data back to this repo.

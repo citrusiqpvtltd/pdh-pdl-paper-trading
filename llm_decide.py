@@ -29,7 +29,13 @@ import time
 import requests
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
-OLLAMA_MODEL = "llama3.2:3b"
+# llama3.2:3b was tested twice on real historical setups and both times
+# justified a trade by citing signals pointing the OPPOSITE direction (e.g.
+# "bullish signals confirm the short reversal") even after an explicit
+# per-direction consistency rule was added to the prompt - a demonstrated
+# capability ceiling, not a prompting problem. qwen2.5:7b is meaningfully
+# stronger at instruction-following for a fraction more latency.
+OLLAMA_MODEL = "qwen2.5:7b"
 
 SYSTEM_PROMPT = """You are a trading judgment assistant for a PDH/PDL (previous day high/low) reversal strategy on BTCUSDT.
 
