@@ -15,10 +15,12 @@ any network error just means this section is omitted from the LLM's
 context, never crashes the run or blocks a trading decision.
 """
 import sys
+from datetime import datetime, timezone
 
 import requests
 
 FNG_URL = "https://api.alternative.me/fng/?limit=1"
+FNG_HISTORY_URL = "https://api.alternative.me/fng/?limit=0"  # full history, free, no key
 COINGECKO_GLOBAL_URL = "https://api.coingecko.com/api/v3/global"
 
 
@@ -45,6 +47,35 @@ def fetch_market_status() -> dict:
         print(f"CoinGecko global data fetch failed ({e!r}) - omitting from context.", file=sys.stderr)
 
     return status
+
+
+def fetch_fear_greed_history() -> dict:
+    """Full daily Fear & Greed history (free, no key, back to Feb 2018) as
+    {date_str "YYYY-MM-DD": (value:int, label:str)}. For point-in-time-
+    correct historical backtesting - NOT "today's" value applied to every
+    replayed bar, which would be lookahead bias at any real scale."""
+    try:
+        r = requests.get(FNG_HISTORY_URL, timeout=30)
+        r.raise_for_status()
+        out = {}
+        for row in r.json()["data"]:
+            d = datetime.fromtimestamp(int(row["timestamp"]), tz=timezone.utc).strftime("%Y-%m-%d")
+            out[d] = (int(row["value"]), row["value_classification"])
+        return out
+    except Exception as e:
+        print(f"Fear & Greed history fetch failed ({e!r}) - historical backtest will omit market status.", file=sys.stderr)
+        return {}
+
+
+def format_for_context_historical(date_str: str, fg_history: dict) -> str:
+    """Point-in-time market status for a historical backtest bar. Only Fear
+    & Greed is available historically for free; CoinGecko's global market
+    cap/BTC dominance history requires a paid plan, so those are omitted
+    here (they're still used, current-only, in the live bot)."""
+    if date_str not in fg_history:
+        return ""
+    value, label = fg_history[date_str]
+    return f"Broader crypto market status (as of {date_str}):\n  - Fear & Greed Index: {value}/100 ({label})"
 
 
 def format_for_context(status: dict) -> str:

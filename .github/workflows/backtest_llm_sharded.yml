@@ -1,0 +1,95 @@
+name: Backtest LLM engine - sharded (1-2 year scale)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Total days of history to replay (365 = 1 year, 730 = 2 years)"
+        required: true
+        default: "365"
+      target_per_shard:
+        description: "Touches per shard (keep well under 200 to stay clear of the 6h job cap)"
+        required: false
+        default: "120"
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - id: plan
+        run: python plan_shards.py --days "${{ github.event.inputs.days }}" --target-per-shard "${{ github.event.inputs.target_per_shard }}" >> "$GITHUB_OUTPUT"
+
+  shard:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 350  # comfortably under GitHub's hard 360min/6h cap
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sh
+
+      - name: Start Ollama server
+        run: |
+          nohup ollama serve > ollama.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:11434/api/tags > /dev/null && break
+            sleep 1
+          done
+
+      - name: Pull model
+        run: ollama pull qwen2.5:7b
+
+      - name: Run shard ${{ matrix.shard.index }} (${{ matrix.shard.n_touches }} touches)
+        run: >
+          python backtest_llm.py
+          --start "${{ matrix.shard.start }}"
+          --end "${{ matrix.shard.end }}"
+          --out-suffix "shard$(printf '%03d' ${{ matrix.shard.index }})"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard.index }}
+          path: |
+            backtest_llm_trades_shard*.csv
+            backtest_llm_decisions_shard*.csv
+
+  merge:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          path: downloaded_artifacts
+      - run: python merge_shards.py --artifacts-dir downloaded_artifacts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: merged-results
+          path: |
+            backtest_llm_merged_trades.csv
+            backtest_llm_merged_decisions.csv

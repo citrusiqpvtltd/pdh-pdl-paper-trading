@@ -259,11 +259,15 @@ def step_bar_llm(i, arr, state, market_status_text=""):
             recent = [dict(time=str(arr["open_time"][j]), o=arr["open"][j], h=arr["high"][j],
                             l=arr["low"][j], c=arr["close"][j]) for j in range(start, i + 1)]
             vol_ratio = (arr["volume"][i] / arr["vol_ma"][i]) if pd.notna(arr["vol_ma"][i]) and arr["vol_ma"][i] > 0 else float("nan")
+            # market_status_text is either a fixed string (live bot: one fetch
+            # per run) or a callable taking the bar index (backtests: point-
+            # in-time-correct lookup per historical date - see backtest_llm.py)
+            ms_text = market_status_text(i) if callable(market_status_text) else market_status_text
             context_text = llm_decide.build_context(
                 side=side_key, level_price=level_price, close=arr["close"][i], atr=arr["atr"][i],
                 rsi=arr["rsi"][i], vol_ratio=vol_ratio, patterns=patterns, structure=structure_desc,
                 htf_trend_up=bool(arr["htf_trend_up"][i]), recent_candles=recent,
-                market_status_text=market_status_text,
+                market_status_text=ms_text,
             )
             decision = llm_decide.decide_trade(context_text)
             decisions.append(dict(time=str(arr["open_time"][i]), side=side_key, level_price=level_price,
