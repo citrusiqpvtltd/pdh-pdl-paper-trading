@@ -70,6 +70,8 @@ def _ensure_server_running():
             time.sleep(1)
 
 
+
+
 def build_context(side: str, level_price: float, close: float, atr: float, rsi: float,
                    vol_ratio: float, patterns: dict, structure: str, htf_trend_up: bool,
                    recent_candles: list, market_status_text: str = "") -> str:
@@ -110,7 +112,13 @@ def decide_trade(context_text: str) -> dict:
                 "stream": False,
                 "options": {"temperature": 0.2},
             },
-            timeout=120,
+            # Confirmed twice on real runs: the FIRST call after a fresh `ollama
+            # pull` can take >120s just to load qwen2.5:7b's weights into memory
+            # (the server is already up and passes _ensure_server_running's
+            # check, but hasn't loaded the model yet) - that cold-start load is
+            # on top of, not instead of, actual inference time. 240s covers both;
+            # subsequent calls in the same run stay warm and return well under this.
+            timeout=240,
         )
         resp.raise_for_status()
         content = resp.json()["message"]["content"]
