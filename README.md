@@ -70,7 +70,7 @@ run" rather than near-real-time.
 
 ```bash
 pip install -r requirements.txt
-# separately: install Ollama (https://ollama.com) and `ollama pull llama3.2:3b`
+# separately: install Ollama (https://ollama.com) and `ollama pull qwen2.5:7b`
 python paper_trade.py
 ```
 
