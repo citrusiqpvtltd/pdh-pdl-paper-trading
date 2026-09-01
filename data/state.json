@@ -6,16 +6,18 @@
     163602
   ],
   "pivot_low_vals": [
-    78189.93
+    78189.93,
+    77510.0
   ],
   "pivot_low_bars": [
-    163587
+    163587,
+    163633
   ],
   "sell_fired": false,
-  "buy_fired": false,
-  "equity": 100.06618919356664,
+  "buy_fired": true,
+  "equity": 100.04189139073787,
   "position": null,
-  "last_processed_index": 163627,
+  "last_processed_index": 163645,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "llama3.2:3b"
