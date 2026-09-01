@@ -1,15 +1,19 @@
 # PDH/PDL Reversal — Live Paper Trading (LLM-decided entries)
 
-_Simulator only. No real money, no exchange account, no API keys. Entries are judged live by a local Ollama model (llama3.2:3b), not the fixed rule-based score. **This decision logic is unvalidated / experimental** - see README. Last updated: 2026-09-01T07:00:37.730167+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Entries are judged live by a local Ollama model (llama3.2:3b), not the fixed rule-based score. **This decision logic is unvalidated / experimental** - see README. Last updated: 2026-09-01T12:24:12.889627+00:00_
 
 ## Current State
 
-- Equity: **100.00 USDT** (started at 100.00)
-- Last processed bar: 2026-09-01 06:30:00+00:00
-- Position: **SHORT** 0.000126 BTC @ 79167.50 (SL 79435.46, TP1 78765.59, TP2 78363.67)
-  - LLM's reasoning at entry: _Volume is above 1.2x its 40-bar average, and the 4H trend is above its EMA-50, indicating a bullish structure that supports the short reversal. The bearish candlestick pattern and chart pattern flags are false, and the RSI is oversold, further supporting the short entry._
+- Equity: **100.07 USDT** (started at 100.00)
+- Last processed bar: 2026-09-01 12:00:00+00:00
+- Position: **flat**
 
-No trades closed yet under the LLM-decided engine.
+## Live Stats (since switching to LLM-decided entries)
+
+- Total trades: 2
+- Win rate: 100.00%
+- Total PnL: 0.07 USDT (0.07%)
+- Profit factor: inf
 
 ## Most Recent LLM Decisions
 
