@@ -22,6 +22,7 @@ import pandas as pd
 
 import backtest_pdh_pdl as bt
 import llm_decide
+import market_status
 import paper_trade as pt
 
 
@@ -55,11 +56,18 @@ def main():
             if len(state["pivot_low_vals"]) > bt.MAX_PIVOT_HISTORY:
                 state["pivot_low_vals"].pop(0); state["pivot_low_bars"].pop(0)
 
+    # NOTE: this uses TODAY's market status for every historical bar replayed,
+    # which is lookahead bias, technically - acceptable here only because this
+    # script replays a few recent days at most (see the module docstring: this
+    # is a rough, unvalidated probe, not a rigorous backtest).
+    market_status_text = market_status.format_for_context(market_status.fetch_market_status())
+    print(market_status_text, file=sys.stderr)
+
     all_trades, all_decisions = [], []
     t_start = time.time()
     n_calls = 0
     for i in range(start_i, arr["n"]):
-        state, trades, decisions = pt.step_bar_llm(i, arr, state)
+        state, trades, decisions = pt.step_bar_llm(i, arr, state, market_status_text)
         all_trades.extend(trades)
         all_decisions.extend(decisions)
         if decisions:

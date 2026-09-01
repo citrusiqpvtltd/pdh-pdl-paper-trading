@@ -49,6 +49,8 @@ CRITICAL - each signal only supports the trade if it points the SAME way as the 
 
 Before answering, check each signal against the table above and only count the ones that actually align with the trade direction. Weigh: does price action really show rejection at the level, does a chart pattern support this specific direction, is volume confirming, does structure already favor this direction, does momentum actually turn the right way, does the 4H trend not fight it. A setup with few or contradictory signals should be skipped. A setup stacking multiple genuinely-aligned confirmations is a stronger candidate.
 
+You may also be given broader crypto market status (Fear & Greed Index, total market cap trend, BTC dominance) - this is context, not a signal to force into the same alignment table above. Use it only as a mild adjustment: extreme greed can make a SELL/short-reversal-at-resistance somewhat more plausible (overextended, crowded longs) and a BUY somewhat riskier (chasing strength); extreme fear is the mirror image for a BUY/short-reversal-at-support. A neutral reading is not a reason to enter or skip by itself - it only matters when it's extreme (below ~20 or above ~80) and should never outweigh a lack of real technical confluence.
+
 Respond with ONLY a JSON object, no other text: {"action": "enter" or "skip", "reasoning": "one or two sentences explaining your judgment, citing only signals that actually align with the trade direction"}"""
 
 
@@ -70,7 +72,7 @@ def _ensure_server_running():
 
 def build_context(side: str, level_price: float, close: float, atr: float, rsi: float,
                    vol_ratio: float, patterns: dict, structure: str, htf_trend_up: bool,
-                   recent_candles: list) -> str:
+                   recent_candles: list, market_status_text: str = "") -> str:
     level_name = "PDH (previous day high)" if side == "sell" else "PDL (previous day low)"
     lines = [
         f"Setup: potential {'SHORT' if side == 'sell' else 'LONG'} reversal at {level_name} = {level_price:.2f}",
@@ -85,6 +87,9 @@ def build_context(side: str, level_price: float, close: float, atr: float, rsi: 
     lines.append("Last 10 15-minute candles (O/H/L/C):")
     for c in recent_candles[-10:]:
         lines.append(f"  {c['time']}  O:{c['o']:.2f} H:{c['h']:.2f} L:{c['l']:.2f} C:{c['c']:.2f}")
+    if market_status_text:
+        lines.append("")
+        lines.append(market_status_text)
     return "\n".join(lines)
 
 

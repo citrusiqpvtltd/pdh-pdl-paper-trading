@@ -43,6 +43,7 @@ import requests
 
 import backtest_pdh_pdl as bt
 import llm_decide
+import market_status
 
 DATA_DIR = "data"
 PARQUET_FILE = os.path.join(DATA_DIR, "btcusdt_15m.parquet")
@@ -167,7 +168,7 @@ def compute_sl_tp(side: str, entry_close: float, atr: float, pdh: float, pdl: fl
     return dict(sl=sl, tp1=tp1, tp2=tp2, risk=risk)
 
 
-def step_bar_llm(i, arr, state):
+def step_bar_llm(i, arr, state, market_status_text=""):
     """One bar of the LLM-decided engine. Entry judgment is delegated to
     llm_decide.decide_trade; pivot maintenance, structure/pattern context,
     and exit management reuse the same logic/constants as the validated
@@ -262,6 +263,7 @@ def step_bar_llm(i, arr, state):
                 side=side_key, level_price=level_price, close=arr["close"][i], atr=arr["atr"][i],
                 rsi=arr["rsi"][i], vol_ratio=vol_ratio, patterns=patterns, structure=structure_desc,
                 htf_trend_up=bool(arr["htf_trend_up"][i]), recent_candles=recent,
+                market_status_text=market_status_text,
             )
             decision = llm_decide.decide_trade(context_text)
             decisions.append(dict(time=str(arr["open_time"][i]), side=side_key, level_price=level_price,
@@ -356,13 +358,18 @@ def main():
         print("First run under LLM-decided engine: starting fresh from the latest bar "
               "(no historical replay - see llm_decide.py docstring for why).", file=sys.stderr)
 
+    # Fetched once per run, not once per decision - this is slow-moving,
+    # market-wide context, not something worth a fresh call per bar.
+    market_status_text = market_status.format_for_context(market_status.fetch_market_status())
+    print(market_status_text, file=sys.stderr)
+
     now = datetime.now(timezone.utc)
     new_trades, new_decisions = [], []
     processed_upto = last_processed_index
     for i in range(last_processed_index + 1, arr["n"]):
         if df["close_time"].iloc[i].to_pydatetime() > now:
             break
-        state, trades, decisions = step_bar_llm(i, arr, state)
+        state, trades, decisions = step_bar_llm(i, arr, state, market_status_text)
         new_trades.extend(trades)
         new_decisions.extend(decisions)
         processed_upto = i
