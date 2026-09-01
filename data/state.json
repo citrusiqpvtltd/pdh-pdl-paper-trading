@@ -1,13 +1,29 @@
 {
   "pivot_high_vals": [],
   "pivot_high_bars": [],
-  "pivot_low_vals": [],
-  "pivot_low_bars": [],
-  "sell_fired": false,
+  "pivot_low_vals": [
+    78189.93
+  ],
+  "pivot_low_bars": [
+    163587
+  ],
+  "sell_fired": true,
   "buy_fired": false,
-  "equity": 100.0,
-  "position": null,
-  "last_processed_index": 163585,
+  "equity": 99.995,
+  "position": {
+    "side": "short",
+    "entry_time": "2026-09-01T05:30:00",
+    "entry_px": 79167.5,
+    "qty_total": 0.00012631445984779107,
+    "qty_remaining": 0.00012631445984779107,
+    "sl": 79435.45638377199,
+    "tp1": 78765.590424342,
+    "tp2": 78363.670848684,
+    "tp1_filled": false,
+    "entry_comm_total": 0.005,
+    "llm_reasoning": "Volume is above 1.2x its 40-bar average, and the 4H trend is above its EMA-50, indicating a bullish structure that supports the short reversal. The bearish candlestick pattern and chart pattern flags are false, and the RSI is oversold, further supporting the short entry."
+  },
+  "last_processed_index": 163605,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "llama3.2:3b"

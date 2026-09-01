@@ -1,0 +1,2 @@
+time,side,level_price,action,reasoning
+2026-09-01T05:30:00.000,sell,79250.0,enter,"Volume is above 1.2x its 40-bar average, and the 4H trend is above its EMA-50, indicating a bullish structure that supports the short reversal. The bearish candlestick pattern and chart pattern flags are false, and the RSI is oversold, further supporting the short entry."
