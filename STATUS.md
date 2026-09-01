@@ -4,7 +4,7 @@ _Simulator only. No real money, no exchange account, no API keys. Entries are ju
 
 ## Current State
 
-- Equity: **10000.00 USDT** (started at 10000.00)
+- Equity: **100.00 USDT** (started at 100.00)
 - Last processed bar: 2026-08-31 23:30:00+00:00
 - Position: **flat**
 
