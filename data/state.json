@@ -4,14 +4,16 @@
     78424.0,
     77638.18,
     77792.0,
-    77765.99
+    77765.99,
+    77582.0
   ],
   "pivot_high_bars": [
     163602,
     163638,
     163674,
     163688,
-    163703
+    163703,
+    163740
   ],
   "pivot_low_vals": [
     78189.93,
@@ -31,7 +33,7 @@
   "buy_fired": false,
   "equity": 100.04189139073787,
   "position": null,
-  "last_processed_index": 163742,
+  "last_processed_index": 163753,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "qwen2.5:7b"
