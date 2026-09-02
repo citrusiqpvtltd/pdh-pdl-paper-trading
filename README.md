@@ -40,6 +40,38 @@ data, this engine loses money. This is a materially larger, more credible
 sample than anything checked before it (previous checks were 3-7 trades),
 and it does not support the LLM-decided approach as currently configured.
 
+**Update 2: tried disabling shorts, found a more important bug instead.**
+The first 2-year run above showed shorts losing far worse than longs
+(16.7% vs 28.9% round-trip win rate), so shorts were disabled
+(`ALLOW_SHORTS = False` in `paper_trade.py`). Re-running the same 2-year
+window long-only came back *worse* (-$0.95 vs the -$0.13 the long side
+alone showed in the first run) - on the exact same model, prompt, and
+data. Comparing the actual entered trades between the two runs: only
+36/45 setups (80%) got the same enter/skip call; **9/45 (20%) flipped**
+purely from Ollama's `temperature: 0.2` sampling. That's enough variance
+on its own to produce a 7x swing in aggregate PnL - meaning the original
+short-vs-long asymmetry, and every other backtest comparison in this
+repo's history up to this point, carries more noise than it appeared to.
+
+Fixed by setting `temperature: 0.0` (deterministic) and re-running clean:
+**53 trades, 35.85% win rate, profit factor 0.503, -$0.87, long-only.**
+This now agrees closely with a second temperature-0.2 long-only run
+(-$0.95, PF 0.496) - both land near PF ~0.50, well below the *mixed*
+first run's PF 0.671. So disabling shorts did **not** fix profitability;
+if anything, the long side alone performs worse than the original
+blended number suggested, and the first run's "-$0.13 for longs" figure
+was the noisy outlier, not the real signal.
+
+**Where this leaves things:** every configuration tested so far - mixed
+sides, long-only at temperature 0.2, long-only at temperature 0 - lands
+in the same profit factor 0.50-0.67 range, consistently below 1.0. None
+of the interventions tried (model upgrade, market status context,
+disabling shorts, fixing determinism) have produced a configuration with
+a real edge on a genuinely large sample. The validated rule-based engine
+(profit factor 1.483, +4.08%, profitable in all 5 years, 355 trades over
+4.67 years) remains the only approach in this repo with demonstrated
+positive edge at scale.
+
 **Model history:** started on `llama3.2:3b`. Both a small backtest and the
 first few live decisions showed it justifying trades with directly
 contradictory reasoning (e.g. citing a bullish signal as support for a
