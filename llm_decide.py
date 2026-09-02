@@ -110,7 +110,14 @@ def decide_trade(context_text: str) -> dict:
                 ],
                 "format": "json",
                 "stream": False,
-                "options": {"temperature": 0.2},
+                # temperature 0, not 0.2: confirmed on two real full 2-year
+                # backtests that the SAME historical setups got a different
+                # enter/skip call ~20% of the time (36/45 agreed, 9 flipped)
+                # run-to-run under temperature 0.2 - enough sampling variance
+                # to swing aggregate PnL from -$0.13 to -$0.95 on its own,
+                # which would otherwise be mistaken for a real effect of
+                # whatever logic/prompt change is actually being tested.
+                "options": {"temperature": 0.0},
             },
             # Confirmed twice on real runs: the FIRST call after a fresh `ollama
             # pull` can take >120s just to load qwen2.5:7b's weights into memory
