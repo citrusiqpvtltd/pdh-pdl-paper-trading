@@ -1,0 +1,55 @@
+name: Retrain ML Entry Filter (scheduled, offline batch)
+
+on:
+  schedule:
+    # Monthly, 1st of the month at 03:00 UTC. This is offline BATCH
+    # retraining, not online/incremental learning - see retrain_pipeline.py's
+    # docstring. GitHub's scheduler is best-effort like paper_trade.yml's, but
+    # a delayed/skipped tick costs nothing here beyond a slightly stale model.
+    - cron: "0 3 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: retrain-ml-filter
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    # Rebuilding the ~50k-row labeled dataset from full history is the slow
+    # part (a few minutes); training + holdout validation is fast on top of
+    # that.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - run: python retrain_pipeline.py
+
+      - name: Commit results (retry-safe against paper_trade.yml's frequent commits)
+        run: |
+          git config user.name "pdh-pdl-paper-trading-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add ml_entry_filter.joblib data/ml_training_data.csv RETRAIN_LOG.md
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+          git commit -m "ML filter retrain: $(date -u +'%Y-%m-%d %H:%M UTC')"
+          for i in 1 2 3 4 5; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push rejected (attempt $i) - pulling and retrying..."
+            git pull --rebase
+          done
+          echo "Failed to push after 5 attempts." >&2
+          exit 1

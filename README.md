@@ -105,6 +105,34 @@ this bot's 60% sizing - it would call that reckless; that sizing was kept
 because hitting the stated 12%/year target requires it, and this is a
 simulator.)
 
+## Retraining: scheduled, NOT self-learning
+
+There is no online/incremental learning here - the model never updates
+itself from its own trade outcomes as it runs. What exists instead:
+`retrain_pipeline.py` runs monthly (`.github/workflows/retrain_ml_filter.yml`,
+1st of the month), doing the same offline batch process by hand:
+
+1. Rebuilds the labeled touch dataset from all data on disk.
+2. Re-splits train/holdout using a **rolling** window - the most recent 270
+   days, whenever it happens to run, not a fixed calendar date.
+3. Trains a candidate model on everything before that holdout.
+4. Validates the candidate sequentially and position-exclusively on the
+   holdout, through the real `step_bar` engine (same method as
+   `validate_ml_filter.py` - not a naive average).
+5. **Deploys only if the candidate clears both a minimum sample size (30
+   holdout trades) and a minimum profit factor (0.90) on its own holdout.**
+   Otherwise the existing model is kept untouched and the reason is logged.
+
+The gate threshold (0.55) is never re-searched during retraining - only the
+model itself is refit, at the already-validated threshold, so retraining
+can't compound overfitting by also chasing a threshold on a small monthly
+sample. Every run - deployed or skipped - is logged to `RETRAIN_LOG.md`
+with its holdout metrics and reasoning, so this stays auditable rather than
+a silent background process. In initial local testing, both a 6-month and
+a 9-month rolling holdout were tried and correctly SKIPPED deployment
+(too few trades, then PF below floor) rather than deploying a weaker model
+- the safety gate working as intended, not a bug.
+
 `ml_filter.py` holds the ONE shared implementation of the gate's
 feature-row construction, imported by both `paper_trade.py` (live) and
 `validate_ml_filter.py` (validation) - an earlier standalone
