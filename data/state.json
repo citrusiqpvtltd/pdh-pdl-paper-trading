@@ -18,10 +18,10 @@
     163654
   ],
   "sell_fired": false,
-  "buy_fired": true,
+  "buy_fired": false,
   "equity": 100.04189139073787,
   "position": null,
-  "last_processed_index": 163666,
+  "last_processed_index": 163675,
   "live_since": "2026-08-31 23:30:00+00:00",
   "engine": "llm-ollama",
   "model": "qwen2.5:7b"
