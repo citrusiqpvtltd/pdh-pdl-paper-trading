@@ -59,6 +59,16 @@ HISTORY_START = datetime(2022, 1, 1, tzinfo=timezone.utc)
 
 ZONE_PCT, HTF_RULE = 0.3, "4h"
 SL_METHOD, RR1, RR2, TP2_ENABLED = "Swing", 1.5, 3.0, True
+# Real 2-year backtest (data/llm_2year_backtest_trades.csv, ~Sep 2024-Sep 2026):
+# short round-trips won 16.7% (4/24, -$0.80 total) vs long 28.9% (13/45, -$0.13
+# total) - shorts lost in EVERY sub-breakdown checked (including split by
+# whether the entry fought or aligned with the 4H trend), while one long
+# sub-bucket was genuinely profitable (+$0.45, 40% win rate, buying against a
+# downtrend). This is the largest, most consistent pattern in the data -
+# disabling shorts removes the clear loser without touching the side that at
+# least has a shot. Re-enable only after fixing sell-side judgment and
+# re-validating at real scale.
+ALLOW_SHORTS = False
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
     "quote_asset_volume", "num_trades", "taker_buy_base", "taker_buy_quote", "ignore",
@@ -241,6 +251,8 @@ def step_bar_llm(i, arr, state, market_status_text=""):
 
     is_flat = state["position"] is None
     near_pdh, near_pdl = bool(arr["near_pdh"][i]), bool(arr["near_pdl"][i])
+    if not ALLOW_SHORTS:
+        near_pdh = False  # see ALLOW_SHORTS docstring above - shorts disabled pending sell-side fix
 
     if is_flat and (near_pdh or near_pdl):
         side_key = "sell" if near_pdh else "buy"
