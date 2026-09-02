@@ -1,11 +1,11 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading (rule-based)
 
-_Simulator only. No real money, no exchange account, no API keys. Deterministic scoring engine (no LLM) - see README for how these parameters and the 60% position size were chosen (target: 12%/year). Last updated: 2026-09-02T20:30:21.169864+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Deterministic scoring engine (no LLM) - see README for how these parameters and the 60% position size were chosen (target: 12%/year). Last updated: 2026-09-02T22:09:09.141292+00:00_
 
 ## Current State
 
 - Equity: **169.43 USDT** (started at 100.00)
-- Last processed bar: 2026-09-02 20:15:00+00:00
+- Last processed bar: 2026-09-02 21:45:00+00:00
 - Position: **flat**
 
 ## All-Time Stats (backtest + live combined)
