@@ -1,5 +1,9 @@
 {
   "pivot_high_vals": [
+    78310.71,
+    79400.0,
+    78802.0,
+    79250.0,
     79220.61,
     78424.0,
     77638.18,
@@ -8,6 +12,10 @@
     77582.0
   ],
   "pivot_high_bars": [
+    163414,
+    163454,
+    163519,
+    163559,
     163602,
     163638,
     163674,
@@ -16,6 +24,11 @@
     163740
   ],
   "pivot_low_vals": [
+    77990.0,
+    77962.49,
+    77000.0,
+    77392.0,
+    77675.04,
     78189.93,
     77510.0,
     76420.0,
@@ -23,6 +36,11 @@
     76264.0
   ],
   "pivot_low_bars": [
+    163406,
+    163427,
+    163482,
+    163494,
+    163533,
     163587,
     163633,
     163654,
@@ -31,10 +49,19 @@
   ],
   "sell_fired": false,
   "buy_fired": false,
-  "equity": 100.04189139073787,
+  "equity": 169.42873578768587,
   "position": null,
-  "last_processed_index": 163753,
-  "live_since": "2026-08-31 23:30:00+00:00",
-  "engine": "llm-ollama",
-  "model": "qwen2.5:7b"
+  "last_processed_index": 163755,
+  "live_since": "2026-09-02 20:15:00+00:00",
+  "engine": "rule-based",
+  "zone_pct": 0.4,
+  "htf_rule": "1h",
+  "qty_pct_of_equity": 0.6,
+  "score_threshold": 3,
+  "rr1": 2.0,
+  "rr2": 4.0,
+  "sl_method": "Swing",
+  "tp2_enabled": true,
+  "use_htf_filter": true,
+  "enable_breakout_protection": true
 }

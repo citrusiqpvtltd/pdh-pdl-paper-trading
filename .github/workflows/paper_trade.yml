@@ -1,4 +1,4 @@
-name: Paper Trade (LLM-decided entries)
+name: Paper Trade (rule-based)
 
 on:
   schedule:
@@ -20,14 +20,9 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Installing Ollama + pulling the model fresh every run (no persistent
-    # host to keep it running on) plus local inference adds real minutes
-    # over the old rule-based version - bound it so a stuck pull/inference
-    # fails the run instead of burning the whole Actions minute budget.
-    # qwen2.5:7b is slower per call than the 3B model it replaced, and a
-    # delayed/catch-up run (see the scheduling caveat above) can face
-    # several near-zone touches in one go - budget more headroom.
-    timeout-minutes: 25
+    # No LLM/Ollama anymore - pure pandas, runs in well under a minute even
+    # on a full historical replay.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -36,34 +31,6 @@ jobs:
           python-version: "3.12"
 
       - run: pip install -r requirements.txt
-
-      - name: Install Ollama
-        run: |
-          # `curl | sh` masks a curl failure (sh gets empty stdin, exits 0) -
-          # confirmed on the sharded backtest workflow: a transient
-          # "Connection reset by peer" left this step reporting "success"
-          # with nothing installed, and the real failure only surfaced two
-          # steps later at `ollama pull` ("command not found"). set -o
-          # pipefail + a retry + an explicit post-check makes this fail fast
-          # and self-heal instead.
-          set -o pipefail
-          for i in 1 2 3; do
-            curl -fsSL https://ollama.com/install.sh | sh && break
-            echo "Install attempt $i failed, retrying..." >&2
-            sleep 5
-          done
-          command -v ollama
-
-      - name: Start Ollama server
-        run: |
-          nohup ollama serve > ollama.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:11434/api/tags > /dev/null && break
-            sleep 1
-          done
-
-      - name: Pull model
-        run: ollama pull qwen2.5:7b
 
       - run: python paper_trade.py
 

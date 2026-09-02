@@ -1,125 +1,92 @@
-# PDH/PDL Reversal — Live Paper Trading (LLM-decided entries)
+# PDH/PDL Confluence Reversal — Live Paper Trading
 
 A free, fully automated **paper-trading simulator** for a PDH/PDL (previous
-day high/low) reversal strategy on BTCUSDT, 15-minute bars. Runs entirely
-on GitHub Actions — no server, no laptop, no exchange account, and **no
-real money at any point**.
+day high/low) confluence reversal strategy on BTCUSDT, 15-minute bars.
+Runs entirely on GitHub Actions — no server, no laptop, no exchange
+account, and **no real money at any point**.
 
 See [`STATUS.md`](STATUS.md) for the current simulated position, equity,
-and the LLM's recent trade-entry reasoning — rewritten every run.
+and recent trades — rewritten every run.
 
-## ⚠️ This is an experiment, not a validated strategy
+## Current engine: rule-based, tuned for a 12%/year target
 
-This repo previously ran a fixed, rule-based confluence-scoring strategy
-that was backtested and validated over 4.67 years of history (355 trades,
-profit factor 1.483, +4.08%, profitable in all 5 calendar years — preserved
-in `data/trades_rulebased_archive.csv` for reference). It has been
-**replaced** with an LLM making the entry judgment call instead of the
-fixed score threshold.
+- **Parameters**: Zone 0.4% of level, 1H EMA-50 HTF trend filter, minimum
+  confluence score 3/6, Swing-based stop loss, 2R/4R partial take-profits.
+- **Position size: 60% of equity per trade.** This is the actual lever
+  that gets this to a 12%/year target — the underlying edge alone (at a
+  conservative 10% sizing) only produces ~2%/year. Backtested directly
+  (not extrapolated) at increasing size:
 
-**Update: it has now been backtested**, via a sharded pipeline
-(`plan_shards.py` / `backtest_llm.py` / `merge_shards.py` /
-`.github/workflows/backtest_llm_sharded.yml`) that splits a long window
-into ~60 parallel GitHub Actions jobs to work around the platform's 6-hour
-per-job cap. Result over ~2 years (Sep 2024 – Sep 2026, `qwen2.5:7b`,
-1,529 real decisions, missing ~1.6% of touches from one shard that hit a
-transient install failure — see `data/llm_2year_backtest_trades.csv` /
-`_decisions.csv` for the full record):
+  | Position size | CAGR | Max Drawdown |
+  |---|---|---|
+  | 10% | 2.02%/yr | -2.80% |
+  | 25% | 5.05%/yr | -6.87% |
+  | 40% | 8.06%/yr | -10.80% |
+  | **60% (current)** | **12.05%/yr** | **-15.82%** |
+  | 80% | 16.02%/yr | -20.59% |
+  | 100% | 19.94%/yr | -25.12% |
 
-| | Rule-based (4.67yr, archived) | **LLM-decided (~2yr)** |
-|---|---|---|
-| Trades | 355 | **89** |
-| Win rate | — | **35.96%** |
-| Profit factor | 1.483 | **0.671** |
-| Result | +4.08%, profitable in all 5 years | **net negative, losing in 16 of 25 months** |
-
-The reasoning-consistency fix (switching from `llama3.2:3b` to `qwen2.5:7b`,
-see below) made the model's stated logic internally coherent, but coherent
-reasoning is not the same as *correct* judgment - on real 2-year-scale
-data, this engine loses money. This is a materially larger, more credible
-sample than anything checked before it (previous checks were 3-7 trades),
-and it does not support the LLM-decided approach as currently configured.
-
-**Update 2: tried disabling shorts, found a more important bug instead.**
-The first 2-year run above showed shorts losing far worse than longs
-(16.7% vs 28.9% round-trip win rate), so shorts were disabled
-(`ALLOW_SHORTS = False` in `paper_trade.py`). Re-running the same 2-year
-window long-only came back *worse* (-$0.95 vs the -$0.13 the long side
-alone showed in the first run) - on the exact same model, prompt, and
-data. Comparing the actual entered trades between the two runs: only
-36/45 setups (80%) got the same enter/skip call; **9/45 (20%) flipped**
-purely from Ollama's `temperature: 0.2` sampling. That's enough variance
-on its own to produce a 7x swing in aggregate PnL - meaning the original
-short-vs-long asymmetry, and every other backtest comparison in this
-repo's history up to this point, carries more noise than it appeared to.
-
-Fixed by setting `temperature: 0.0` (deterministic) and re-running clean:
-**53 trades, 35.85% win rate, profit factor 0.503, -$0.87, long-only.**
-This now agrees closely with a second temperature-0.2 long-only run
-(-$0.95, PF 0.496) - both land near PF ~0.50, well below the *mixed*
-first run's PF 0.671. So disabling shorts did **not** fix profitability;
-if anything, the long side alone performs worse than the original
-blended number suggested, and the first run's "-$0.13 for longs" figure
-was the noisy outlier, not the real signal.
-
-**Where this leaves things:** every configuration tested so far - mixed
-sides, long-only at temperature 0.2, long-only at temperature 0 - lands
-in the same profit factor 0.50-0.67 range, consistently below 1.0. None
-of the interventions tried (model upgrade, market status context,
-disabling shorts, fixing determinism) have produced a configuration with
-a real edge on a genuinely large sample. The validated rule-based engine
-(profit factor 1.483, +4.08%, profitable in all 5 years, 355 trades over
-4.67 years) remains the only approach in this repo with demonstrated
-positive edge at scale.
-
-**Model history:** started on `llama3.2:3b`. Both a small backtest and the
-first few live decisions showed it justifying trades with directly
-contradictory reasoning (e.g. citing a bullish signal as support for a
-*short*, or a bearish one for a *long*) — consistently, not as a one-off,
-and it persisted even after adding an explicit per-direction consistency
-rule to the prompt (see `llm_decide.py`). Switched to `qwen2.5:7b` for
-meaningfully better instruction-following, at the cost of slower inference
-per call. Worth re-checking `data/llm_decisions.csv` periodically for
-whether this actually fixed it.
+  The honest tradeoff: hitting 12%/year means a real -15.82% max drawdown
+  in the backtest, not a free lunch. Since this is paper trading, that
+  risk is informational, not financial - but it would matter a great deal
+  if run with real capital.
+- **Backtested**: 489 trades over 4.63 years (2022-2026), profit factor
+  1.400 (was 1.501 at 10% sizing - position sizing doesn't change PF in a
+  perfectly linear way once compounding and commission drag are in play),
+  win rate 48.26%, profitable in 4 of 5 calendar years.
 
 ## How it works
 
 - `paper_trade.py` runs on a GitHub Actions schedule (`.github/workflows/paper_trade.yml`).
 - Each run pulls any newly-closed 15m BTCUSDT candles from Binance's free public market-data API and appends them to `data/btcusdt_15m.parquet`.
-- It recomputes technical indicators over the full dataset (ATR, RSI, MACD, pivots, candlestick/chart pattern proxies, market structure, 4H EMA trend filter — via `backtest_pdh_pdl.compute_indicators`, the same code the archived backtest used).
-- Whenever price is testing yesterday's high or low **and the bot is flat**, it hands that technical context — patterns, structure, volume, momentum, HTF trend, and the last 10 candles — to a **local Ollama model** (`qwen2.5:7b`, installed fresh each run, no API key, no cost) and asks it to judge: is this specific setup worth taking, or skip? The model does not choose direction (fixed by which level is being tested) and does not set prices.
-- If it says "enter", the same deterministic, previously-validated math computes the actual stop-loss and take-profit levels (Swing-based SL, 1.5R/3R partial take-profits) and manages the exit every subsequent bar — only the entry judgment moved to the model.
-- Trades and every LLM decision (including skips, with reasoning) are logged to `data/trades.csv` and `data/llm_decisions.csv`; `STATUS.md` is rewritten with a human-readable summary.
-- The workflow commits and pushes the updated data back to this repo.
-
-## Why Ollama instead of the Claude/OpenAI APIs
-
-This needed to run with no ongoing machine kept on and no per-call cost.
-Since there's no persistent host to run Ollama's daemon on, each CI run
-installs Ollama fresh, pulls the model, runs one inference, and tears the
-whole thing down — which is slower and heavier per run than an API call
-would be, and a 3B local model reasons more shallowly than a hosted
-frontier model. That tradeoff (free + local-in-spirit vs. faster + sharper
-judgment for a few dollars a month) was a deliberate choice, not a
-technical requirement — the architecture would look the same with the
-Ollama-specific block in `paper_trade.py`/`llm_decide.py` swapped for a
-hosted API call.
+- It recomputes technical indicators over the full dataset and replays the strategy (`backtest_pdh_pdl.step_bar` - the SAME function used for backtesting, so live and backtested behavior cannot diverge) over bars closed since the last run, continuing from persisted state in `data/state.json`.
+- On the very first run, this replays the entire 2022-present history once, so `data/trades.csv` starts as exactly the validated backtest and continues seamlessly into genuine forward paper trading from the `live_since` timestamp in `state.json`.
+- No LLM, no Ollama, no API keys - pure deterministic scoring, runs in well under a minute per cycle.
 
 ## GitHub Actions scheduling caveat
 
 `schedule`-triggered workflows are best-effort — GitHub deprioritizes them
 under load, and this repo has seen the configured `*/15 * * * *` cron
-actually fire every 3–4 hours in practice, especially for a newly-added
-workflow. This does not affect correctness: every run processes *every*
-bar closed since its last run, not just the latest one, so a late or
-skipped tick loses no data — only means `STATUS.md` is "as of the last
-run" rather than near-real-time.
+actually fire every 3–4 hours in practice. This does not affect
+correctness: every run processes *every* bar closed since its last run,
+not just the latest one, so a late or skipped tick loses no data — only
+means `STATUS.md` is "as of the last run" rather than near-real-time.
+
+## The LLM-decided engine experiment (archived)
+
+This repo previously replaced the rule-based scoring with a local Ollama
+model (first `llama3.2:3b`, then `qwen2.5:7b`) judging each entry instead
+of a fixed threshold. That path was investigated thoroughly:
+
+- `llama3.2:3b` was found to justify trades with directly contradictory
+  reasoning (citing bullish signals to support a short, and vice versa),
+  consistently, even after prompt fixes.
+- Switching to `qwen2.5:7b` fixed the reasoning coherence, but a real
+  ~2-year backtest (1,529 decisions, 89 trades) showed it losing money:
+  profit factor 0.671.
+- Diagnosed shorts as the apparent problem (16.7% win rate vs longs'
+  28.9%) and disabled them - the re-validation came back *worse*, which
+  led to finding that Ollama's `temperature: 0.2` was flipping ~20% of
+  enter/skip decisions on identical historical input, run to run. Fixed
+  determinism (`temperature: 0`) and re-ran clean: 53 trades, profit
+  factor 0.503 - still losing, and consistent with a second temperature-0.2
+  run (PF 0.496), confirming the original "shorts are the problem"
+  diagnosis was itself built on noise.
+- Every configuration tested (mixed sides, long-only, two temperatures)
+  landed in the same profit factor 0.50-0.67 range. No configuration
+  produced a real edge at scale.
+
+Full trade-by-trade record preserved in `data/trades_llm_archive.csv`,
+`data/llm_decisions_archive.csv`, and the `data/llm_2year_backtest_*.csv`
+files, plus the sharded backtest infrastructure itself
+(`plan_shards.py` / `backtest_llm.py` / `merge_shards.py` /
+`.github/workflows/backtest_llm_sharded.yml`, still functional if anyone
+wants to pick this investigation back up) for reference.
 
 ## Running it yourself
 
 ```bash
 pip install -r requirements.txt
-# separately: install Ollama (https://ollama.com) and `ollama pull qwen2.5:7b`
 python paper_trade.py
 ```
 
@@ -129,3 +96,6 @@ No API keys or secrets needed anywhere in this repo.
 
 This is a research/educational simulator. Past and simulated performance
 is not indicative of future results. Nothing here is financial advice.
+The 60% position sizing chosen here is aggressive by conventional risk
+management standards and was chosen specifically to hit a stated 12%/year
+target in paper trading - it is not a recommendation for real capital.
