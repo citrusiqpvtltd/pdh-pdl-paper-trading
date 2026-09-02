@@ -17,11 +17,28 @@ in `data/trades_rulebased_archive.csv` for reference). It has been
 **replaced** with an LLM making the entry judgment call instead of the
 fixed score threshold.
 
-That replacement has **not** been backtested — doing so would mean
-replaying thousands of historical setups through a real LLM call each,
-which is a separate, larger effort. Everything in `data/trades.csv` from
-here forward is a live forward-test with no historical validation behind
-it. Watch `STATUS.md` over time to see how it actually performs.
+**Update: it has now been backtested**, via a sharded pipeline
+(`plan_shards.py` / `backtest_llm.py` / `merge_shards.py` /
+`.github/workflows/backtest_llm_sharded.yml`) that splits a long window
+into ~60 parallel GitHub Actions jobs to work around the platform's 6-hour
+per-job cap. Result over ~2 years (Sep 2024 – Sep 2026, `qwen2.5:7b`,
+1,529 real decisions, missing ~1.6% of touches from one shard that hit a
+transient install failure — see `data/llm_2year_backtest_trades.csv` /
+`_decisions.csv` for the full record):
+
+| | Rule-based (4.67yr, archived) | **LLM-decided (~2yr)** |
+|---|---|---|
+| Trades | 355 | **89** |
+| Win rate | — | **35.96%** |
+| Profit factor | 1.483 | **0.671** |
+| Result | +4.08%, profitable in all 5 years | **net negative, losing in 16 of 25 months** |
+
+The reasoning-consistency fix (switching from `llama3.2:3b` to `qwen2.5:7b`,
+see below) made the model's stated logic internally coherent, but coherent
+reasoning is not the same as *correct* judgment - on real 2-year-scale
+data, this engine loses money. This is a materially larger, more credible
+sample than anything checked before it (previous checks were 3-7 trades),
+and it does not support the LLM-decided approach as currently configured.
 
 **Model history:** started on `llama3.2:3b`. Both a small backtest and the
 first few live decisions showed it justifying trades with directly

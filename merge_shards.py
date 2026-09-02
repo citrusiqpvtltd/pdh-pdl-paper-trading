@@ -50,10 +50,15 @@ def main():
     ddf = pd.concat(decisions, ignore_index=True) if decisions else pd.DataFrame()
 
     if len(tdf):
-        tdf["entry_time"] = pd.to_datetime(tdf["entry_time"])
+        # format="mixed": confirmed on a real run that entry_time strings
+        # aren't uniformly formatted across shards (e.g. some serialize as a
+        # bare date "2025-01-27" with no time component when a trade opened
+        # exactly at midnight), which breaks pandas' single-format fast path.
+        tdf["entry_time"] = pd.to_datetime(tdf["entry_time"], format="mixed")
+        tdf["exit_time"] = pd.to_datetime(tdf["exit_time"], format="mixed")
         tdf = tdf.sort_values("entry_time").reset_index(drop=True)
     if len(ddf):
-        ddf["time"] = pd.to_datetime(ddf["time"])
+        ddf["time"] = pd.to_datetime(ddf["time"], format="mixed")
         ddf = ddf.sort_values("time").reset_index(drop=True)
 
     tdf.to_csv("backtest_llm_merged_trades.csv", index=False)
