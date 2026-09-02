@@ -152,6 +152,58 @@ def compute_indicators(df: pd.DataFrame, zone_pct=ZONE_PCT, htf_rule=HTF_RULE, h
     df["bearish_candle"] = (bear_engulf | shooting_star | evening_star | bear_pin | doji_bear).fillna(False)
     df["bullish_candle"] = (bull_engulf | hammer | morning_star | bull_pin | doji_bull).fillna(False)
 
+    # ---- Expose each Nison (Japanese Candlestick Charting Techniques) pattern
+    # individually too - NOT used by the live score (which only wants one
+    # aggregate flag per bar, above), but the ML feature set wants to know
+    # WHICH pattern fired, since some are more reliable than others. ----
+    df["bear_engulf"] = bear_engulf.fillna(False)
+    df["bull_engulf"] = bull_engulf.fillna(False)
+    df["shooting_star"] = shooting_star.fillna(False)
+    df["hammer_candle"] = hammer.fillna(False)
+    df["evening_star"] = evening_star.fillna(False)
+    df["morning_star"] = morning_star.fillna(False)
+    df["bear_pin"] = bear_pin.fillna(False)
+    df["bull_pin"] = bull_pin.fillna(False)
+    df["doji_bear"] = doji_bear.fillna(False)
+    df["doji_bull"] = doji_bull.fillna(False)
+
+    # ---- More Nison reversal patterns not previously coded ----
+    range0 = h - l
+    body1_top = pd.concat([o1, c1], axis=1).max(axis=1)
+    body1_bot = pd.concat([o1, c1], axis=1).min(axis=1)
+    body0_top = pd.concat([o, c], axis=1).max(axis=1)
+    body0_bot = pd.concat([o, c], axis=1).min(axis=1)
+
+    # Harami / Harami Cross: small real body fully inside the prior larger,
+    # opposite-colored body (Harami Cross = the small inside candle is a doji)
+    harami_bear = is_bull1 & is_bear0 & (body0_top <= body1_top) & (body0_bot >= body1_bot) & (body0 < body1 * 0.6)
+    harami_bull = is_bear1 & is_bull0 & (body0_top <= body1_top) & (body0_bot >= body1_bot) & (body0 < body1 * 0.6)
+    df["harami_bear"] = harami_bear.fillna(False)
+    df["harami_bull"] = harami_bull.fillna(False)
+    df["harami_cross_bear"] = (harami_bear & (body0 <= range0 * 0.1)).fillna(False)
+    df["harami_cross_bull"] = (harami_bull & (body0 <= range0 * 0.1)).fillna(False)
+
+    # Dark-Cloud Cover / Piercing Pattern: opens beyond the prior close, closes
+    # past the midpoint of the prior candle's body, but not past its open
+    mid1 = (o1 + c1) / 2
+    df["dark_cloud_cover"] = (is_bull1 & is_bear0 & (body1 > avg_body * 0.5) & (o > c1) & (c < mid1) & (c > o1)).fillna(False)
+    df["piercing_pattern"] = (is_bear1 & is_bull0 & (body1 > avg_body * 0.5) & (o < c1) & (c > mid1) & (c < o1)).fillna(False)
+
+    # Three Black Crows / Three White Soldiers: three consecutive same-direction
+    # candles, each opening within the prior body and closing progressively further
+    df["three_black_crows"] = (
+        is_bear2 & is_bear1 & is_bear0 & (c1 < c2) & (c < c1) & (o1 <= o2) & (o1 >= c2) & (o <= o1) & (o >= c1)
+        & (body0 > avg_body * 0.5) & (body1 > avg_body * 0.5) & (body2 > avg_body * 0.5)
+    ).fillna(False)
+    df["three_white_soldiers"] = (
+        is_bull2 & is_bull1 & is_bull0 & (c1 > c2) & (c > c1) & (o1 >= o2) & (o1 <= c2) & (o >= o1) & (o <= c1)
+        & (body0 > avg_body * 0.5) & (body1 > avg_body * 0.5) & (body2 > avg_body * 0.5)
+    ).fillna(False)
+
+    # Tweezers Top/Bottom: two consecutive, opposite-colored candles with matching highs/lows
+    df["tweezer_top"] = (is_bull1 & is_bear0 & (abs(h - h1) <= h1 * PATTERN_TOL_PCT / 100)).fillna(False)
+    df["tweezer_bottom"] = (is_bear1 & is_bull0 & (abs(l - l1) <= l1 * PATTERN_TOL_PCT / 100)).fillna(False)
+
     # ---- Flag proxy (non-pivot-based, purely offset-based like the Pine source) ----
     prior_low_flag = l.shift(PATTERN_LOOKBACK + 5)
     prior_high_flag = h.shift(PATTERN_LOOKBACK + 5)
@@ -194,6 +246,57 @@ def compute_indicators(df: pd.DataFrame, zone_pct=ZONE_PCT, htf_rule=HTF_RULE, h
     df["momentum_bear"] = df["rsi_bear_turn"] | df["macd_bear_turn"]
     df["momentum_bull"] = df["rsi_bull_turn"] | df["macd_bull_turn"]
 
+    # ---- Force Index (Elder, "New Trading for a Living") ----
+    # Force Index = Volume * (Close - Close[1]); raw is jagged, so trade off a
+    # short (2) and long (13) EMA of it, exactly as the book specifies.
+    force_raw = v * (c - c.shift(1))
+    df["force_index_2"] = ema(force_raw, 2)
+    df["force_index_13"] = ema(force_raw, 13)
+
+    # ---- Impulse System (Elder) ----
+    # A bar is "green" only when BOTH the 13-EMA slope and the MACD-Histogram
+    # slope point up (censors shorting); "red" only when both point down
+    # (censors buying); otherwise "blue"/neutral. Elder's book uses this as a
+    # permission gate, not a standalone signal - kept here as an ML feature,
+    # not wired into the live score.
+    ema13_close = ema(c, 13)
+    ema13_slope_up = ema13_close > ema13_close.shift(1)
+    ema13_slope_down = ema13_close < ema13_close.shift(1)
+    hist_slope_up = hist > hist1
+    hist_slope_down = hist < hist1
+    df["impulse_green"] = (ema13_slope_up & hist_slope_up).fillna(False)
+    df["impulse_red"] = (ema13_slope_down & hist_slope_down).fillna(False)
+
+    # ---- Stochastic Oscillator (Murphy, "Technical Analysis of the Financial Markets") ----
+    low14 = l.rolling(14).min()
+    high14 = h.rolling(14).max()
+    stoch_k = 100 * (c - low14) / (high14 - low14)
+    df["stoch_k"] = stoch_k
+    df["stoch_d"] = stoch_k.rolling(3).mean()
+    stoch_k_prev = stoch_k.shift(1)
+    df["stoch_bull_turn"] = ((stoch_k_prev <= 20) & (stoch_k > stoch_k_prev)).fillna(False)
+    df["stoch_bear_turn"] = ((stoch_k_prev >= 80) & (stoch_k < stoch_k_prev)).fillna(False)
+
+    # ---- Bollinger Bands (standard TA, covered alongside Murphy's volatility chapters) ----
+    bb_ma = c.rolling(20).mean()
+    bb_std = c.rolling(20).std()
+    bb_upper, bb_lower = bb_ma + 2 * bb_std, bb_ma - 2 * bb_std
+    df["bb_pctb"] = (c - bb_lower) / (bb_upper - bb_lower)
+    df["bb_squeeze"] = ((bb_upper - bb_lower) / bb_ma < 0.04).fillna(False)
+
+    # ---- ADX (Wilder trend strength, via Murphy) ----
+    # Context for THIS strategy's core risk: fading a PDH/PDL level is more
+    # likely to get run over when ADX shows a strong prevailing trend.
+    up_move, down_move = h.diff(), -l.diff()
+    plus_dm = pd.Series(np.where((up_move > down_move) & (up_move > 0), up_move, 0.0), index=df.index)
+    minus_dm = pd.Series(np.where((down_move > up_move) & (down_move > 0), down_move, 0.0), index=df.index)
+    atr14 = rma(tr, 14)  # Wilder's original 14-period smoothing, independent of the strategy's own ATR_LEN
+    plus_di = 100 * rma(plus_dm, 14) / atr14
+    minus_di = 100 * rma(minus_dm, 14) / atr14
+    dx = 100 * (plus_di - minus_di).abs() / (plus_di + minus_di)
+    df["adx"] = rma(dx, 14)
+    df["adx_strong_trend"] = (df["adx"] > 25).fillna(False)
+
     # ---- HTF trend filter (previous CLOSED HTF bar only) ----
     htf = df.set_index("open_time")["close"].resample(htf_rule).agg(["last"]).dropna()
     htf["ema"] = ema(htf["last"], htf_ema_len)
@@ -218,7 +321,18 @@ def prepare_arrays(df: pd.DataFrame) -> dict:
             "bear_flag", "failed_breakout_pdh", "failed_breakdown_pdl", "vol_confirm",
             "momentum_bear", "momentum_bull", "htf_trend_up", "strong_break_up",
             "strong_break_down", "new_day", "ph_confirmed", "pl_confirmed", "ph_peak_val",
-            "pl_peak_val"]
+            "pl_peak_val",
+            # granular Nison candlestick patterns (book-informed ML features - not
+            # used by the live score, which only wants bearish_candle/bullish_candle)
+            "bear_engulf", "bull_engulf", "shooting_star", "hammer_candle", "evening_star",
+            "morning_star", "bear_pin", "bull_pin", "doji_bear", "doji_bull",
+            "harami_bear", "harami_bull", "harami_cross_bear", "harami_cross_bull",
+            "dark_cloud_cover", "piercing_pattern", "three_black_crows", "three_white_soldiers",
+            "tweezer_top", "tweezer_bottom",
+            # Elder (Force Index, Impulse System) + Murphy (Stochastic, Bollinger, ADX)
+            "force_index_2", "force_index_13", "impulse_green", "impulse_red",
+            "stoch_k", "stoch_d", "stoch_bull_turn", "stoch_bear_turn",
+            "bb_pctb", "bb_squeeze", "adx", "adx_strong_trend"]
     arr = {c: df[c].values for c in cols}
     arr["open_time"] = df["open_time"].values
     arr["n"] = len(df)
@@ -234,7 +348,7 @@ def step_bar(i, arr, state, score_threshold=SCORE_THRESHOLD, rr1=RR1, rr2=RR2,
              sl_method="Swing", tp_method="RR", tp2_enabled=TP2_ENABLED,
              use_htf_filter=True, enable_breakout_protection=True,
              sl_atr_mult=SL_ATR_MULT, buffer_ticks=BUFFER_TICKS, tp_atr_mult=2.0,
-             sl_fixed_pct=1.0):
+             sl_fixed_pct=1.0, ml_gate=None):
     """
     Advance the strategy by exactly one bar, mutating and returning `state`.
 
@@ -299,6 +413,12 @@ def step_bar(i, arr, state, score_threshold=SCORE_THRESHOLD, rr1=RR1, rr2=RR2,
             rising_wedge = slope_high > 0 and slope_low > 0 and slope_low > slope_high
             falling_wedge = slope_high < 0 and slope_low < 0 and slope_high < slope_low
 
+    # ---- RSI divergence (Elder emphasizes this heavily) - price makes a new
+    # high/low the momentum oscillator disagrees with, using the same pivot
+    # history above (no extra state needed) ----
+    bearish_divergence = ph_size >= 2 and phv[-1] > phv[-2] and arr["rsi"][i] < arr["rsi"][phb[-1]]
+    bullish_divergence = pl_size >= 2 and plv[-1] < plv[-2] and arr["rsi"][i] > arr["rsi"][plb[-1]]
+
     chart_pattern_bear = double_top or head_shoulders or rising_wedge or arr["bear_flag"][i] or arr["failed_breakout_pdh"][i]
     chart_pattern_bull = double_bottom or inv_head_shoulders or falling_wedge or arr["bull_flag"][i] or arr["failed_breakdown_pdl"][i]
 
@@ -316,6 +436,25 @@ def step_bar(i, arr, state, score_threshold=SCORE_THRESHOLD, rr1=RR1, rr2=RR2,
     if use_htf_filter:
         sell_qualified = sell_qualified and not arr["htf_trend_up"][i]
         buy_qualified = buy_qualified and arr["htf_trend_up"][i]
+
+    # ---- optional ML secondary gate (default None = no behavior change at
+    # all vs. before this hook existed). Applied AFTER every existing rule
+    # gate (score threshold, breakout protection, HTF filter) and BEFORE the
+    # fired-flag state machine, so a caller gets an exact, uncompromised
+    # replica of every other live mechanic and only adds one more condition
+    # on top - no reimplementation/reconstruction of this function elsewhere
+    # needed for an apples-to-apples validation. ----
+    if ml_gate is not None:
+        ml_common = dict(
+            double_top=double_top, double_bottom=double_bottom, head_shoulders=head_shoulders,
+            inv_head_shoulders=inv_head_shoulders, rising_wedge=rising_wedge, falling_wedge=falling_wedge,
+            structure_bull=structure_bull, structure_bear=structure_bear,
+            bearish_divergence=bearish_divergence, bullish_divergence=bullish_divergence,
+        )
+        if buy_qualified:
+            buy_qualified = bool(ml_gate("buy", i, arr, ml_common))
+        if sell_qualified:
+            sell_qualified = bool(ml_gate("sell", i, arr, ml_common))
 
     # ---- state machine resets (every bar, unconditionally) ----
     if arr["new_day"][i]:
@@ -451,17 +590,23 @@ def run_backtest(df: pd.DataFrame, score_threshold=SCORE_THRESHOLD, rr1=RR1, rr2
                   sl_method="Swing", tp_method="RR", tp2_enabled=TP2_ENABLED,
                   use_htf_filter=True, enable_breakout_protection=True,
                   sl_atr_mult=SL_ATR_MULT, buffer_ticks=BUFFER_TICKS, tp_atr_mult=2.0,
-                  sl_fixed_pct=1.0):
+                  sl_fixed_pct=1.0, ml_gate=None, return_signals=False):
     arr = prepare_arrays(df)
     state = new_state()
     all_trades = []
+    all_signals = []
     kwargs = dict(score_threshold=score_threshold, rr1=rr1, rr2=rr2, sl_method=sl_method,
                   tp_method=tp_method, tp2_enabled=tp2_enabled, use_htf_filter=use_htf_filter,
                   enable_breakout_protection=enable_breakout_protection, sl_atr_mult=sl_atr_mult,
-                  buffer_ticks=buffer_ticks, tp_atr_mult=tp_atr_mult, sl_fixed_pct=sl_fixed_pct)
+                  buffer_ticks=buffer_ticks, tp_atr_mult=tp_atr_mult, sl_fixed_pct=sl_fixed_pct,
+                  ml_gate=ml_gate)
     for i in range(arr["n"]):
-        state, trades, _ = step_bar(i, arr, state, **kwargs)
+        state, trades, signal_info = step_bar(i, arr, state, **kwargs)
         all_trades.extend(trades)
+        if return_signals:
+            all_signals.append(signal_info)
+    if return_signals:
+        return all_trades, state["equity"], all_signals
     return all_trades, state["equity"]
 
 

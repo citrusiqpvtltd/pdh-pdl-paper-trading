@@ -29,6 +29,17 @@ the actual goal is a 12%/year return target, not just PF>1):
     12%/year target - backtested at that size: CAGR 12.05%/year, max
     drawdown -15.82%. This is a real, quantified risk tradeoff, not a free
     lunch: the higher return comes with a much rougher equity curve.
+  - ML secondary filter (ml_entry_filter.joblib, via ml_gate): a
+    HistGradientBoostingClassifier trained on 49,619 historical near-PDH/PDL
+    touches (build_ml_dataset.py / train_ml_model.py) gates entries ON TOP
+    of the score>=3+HTF rule above - it does not replace it. Sequential,
+    position-exclusive, out-of-sample validation (validate_ml_filter.py)
+    found the rule alone losing money over the most recent ~1.25 years
+    (CAGR -2.53%, PF 0.91) while adding this gate at threshold 0.55 turned
+    that into a small gain (CAGR +0.15%, PF 1.02) at a real cost to trade
+    frequency (159 -> 75 trades) and no guarantee it holds (small sample;
+    see README for the full investigation, including why a much larger,
+    book-informed feature set was tried and did NOT do better).
 
 This is a SIMULATOR ONLY. No real orders, no exchange account, no API keys.
 """
@@ -42,6 +53,7 @@ import pandas as pd
 import requests
 
 import backtest_pdh_pdl as bt
+from ml_filter import load_gate
 
 DATA_DIR = "data"
 PARQUET_FILE = os.path.join(DATA_DIR, "btcusdt_15m.parquet")
@@ -61,6 +73,9 @@ STEP_KWARGS = dict(
     use_htf_filter=True, enable_breakout_protection=True,
 )
 QTY_PCT_OF_EQUITY = 0.60  # see module docstring - the real lever for the 12%/year target
+
+ML_FILTER_FILE = "ml_entry_filter.joblib"
+ML_GATE_THRESHOLD = 0.55  # see module docstring - the validated breakeven-or-better threshold
 
 COLUMNS = [
     "open_time", "open", "high", "low", "close", "volume", "close_time",
@@ -139,7 +154,8 @@ def save_state(state, last_processed_index, live_since):
         pivot_low_vals=state["pivot_low_vals"], pivot_low_bars=state["pivot_low_bars"],
         sell_fired=state["sell_fired"], buy_fired=state["buy_fired"], equity=state["equity"],
         position=position, last_processed_index=last_processed_index, live_since=live_since,
-        engine="rule-based", zone_pct=ZONE_PCT, htf_rule=HTF_RULE, qty_pct_of_equity=QTY_PCT_OF_EQUITY,
+        engine="rule-based+ml-gate", zone_pct=ZONE_PCT, htf_rule=HTF_RULE, qty_pct_of_equity=QTY_PCT_OF_EQUITY,
+        ml_gate_threshold=ML_GATE_THRESHOLD,
         **STEP_KWARGS,
     )
     with open(STATE_FILE, "w") as f:
@@ -157,10 +173,11 @@ def append_trades(new_trades):
 def write_status(state, last_bar_time, signals_this_run):
     all_trades = pd.read_csv(TRADES_FILE, parse_dates=["entry_time", "exit_time"]) if os.path.exists(TRADES_FILE) else pd.DataFrame()
     lines = []
-    lines.append("# PDH/PDL Confluence Reversal — Live Paper Trading (rule-based)\n")
-    lines.append(f"_Simulator only. No real money, no exchange account, no API keys. Deterministic scoring engine "
-                 f"(no LLM) - see README for how these parameters and the 60% position size were chosen "
-                 f"(target: 12%/year). Last updated: {datetime.now(timezone.utc).isoformat()}_\n")
+    lines.append("# PDH/PDL Confluence Reversal — Live Paper Trading (rule-based + ML secondary filter)\n")
+    lines.append(f"_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF "
+                 f"rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold "
+                 f"{ML_GATE_THRESHOLD}) - see README for how these parameters, the 60% position size, and the "
+                 f"ML gate were chosen (target: 12%/year). Last updated: {datetime.now(timezone.utc).isoformat()}_\n")
     lines.append("## Current State\n")
     lines.append(f"- Equity: **{state['equity']:.2f} USDT** (started at {bt.INITIAL_CAPITAL:.2f})")
     lines.append(f"- Last processed bar: {last_bar_time}")
@@ -171,7 +188,9 @@ def write_status(state, last_bar_time, signals_this_run):
         lines.append(f"- Position: **{pos['side'].upper()}** {pos['qty_remaining']:.6f} BTC @ {pos['entry_px']:.2f} "
                       f"(SL {pos['sl']:.2f}, TP1 {pos['tp1']:.2f}, TP2 {pos['tp2']:.2f}, TP1 filled: {pos['tp1_filled']})")
     if signals_this_run:
-        lines.append(f"- Signal(s) this run: {signals_this_run}")
+        shown = signals_this_run[-10:]
+        prefix = f"(showing last 10 of {len(signals_this_run)}) " if len(signals_this_run) > 10 else ""
+        lines.append(f"- Signal(s) this run: {prefix}{shown}")
     lines.append("")
 
     if len(all_trades):
@@ -210,6 +229,9 @@ def write_status(state, last_bar_time, signals_this_run):
 
 def main():
     bt.QTY_PCT_OF_EQUITY = QTY_PCT_OF_EQUITY  # step_bar reads this module global at call time
+    ml_gate, ml_meta = load_gate(ML_FILTER_FILE, ML_GATE_THRESHOLD)
+    print(f"Loaded ML secondary filter ({ML_FILTER_FILE}, threshold={ML_GATE_THRESHOLD}, "
+          f"{len(ml_meta['features'])} features)", file=sys.stderr)
 
     df_raw = update_dataset()
     df = bt.compute_indicators(df_raw.copy(), zone_pct=ZONE_PCT, htf_rule=HTF_RULE)
@@ -229,7 +251,7 @@ def main():
         close_time = df["close_time"].iloc[i]
         if close_time.to_pydatetime() > now:
             break  # still-forming bar, not closed yet
-        state, trades, signal_info = bt.step_bar(i, arr, state, **STEP_KWARGS)
+        state, trades, signal_info = bt.step_bar(i, arr, state, ml_gate=ml_gate, **STEP_KWARGS)
         new_trades.extend(trades)
         if signal_info["buy_signal"]:
             signals.append(f"BUY score {signal_info['buy_score']}/6 @ {arr['close'][i]:.2f} ({arr['open_time'][i]})")

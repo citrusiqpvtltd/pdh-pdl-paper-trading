@@ -8,14 +8,19 @@ account, and **no real money at any point**.
 See [`STATUS.md`](STATUS.md) for the current simulated position, equity,
 and recent trades — rewritten every run.
 
-## Current engine: rule-based, tuned for a 12%/year target
+## Current engine: rule-based + ML secondary filter, tuned for a 12%/year target
 
-- **Parameters**: Zone 0.4% of level, 1H EMA-50 HTF trend filter, minimum
+- **Rule**: Zone 0.4% of level, 1H EMA-50 HTF trend filter, minimum
   confluence score 3/6, Swing-based stop loss, 2R/4R partial take-profits.
+- **ML secondary filter**: a `HistGradientBoostingClassifier` trained on
+  49,619 historical near-PDH/PDL touches (`build_ml_dataset.py` /
+  `train_ml_model.py`) gates entries **on top of** the rule above - it does
+  not replace it. See "ML entry filter" below for the full story of why and
+  how this was validated.
 - **Position size: 60% of equity per trade.** This is the actual lever
   that gets this to a 12%/year target — the underlying edge alone (at a
   conservative 10% sizing) only produces ~2%/year. Backtested directly
-  (not extrapolated) at increasing size:
+  (not extrapolated) at increasing size, rule-only (no ML gate):
 
   | Position size | CAGR | Max Drawdown |
   |---|---|---|
@@ -30,10 +35,84 @@ and recent trades — rewritten every run.
   in the backtest, not a free lunch. Since this is paper trading, that
   risk is informational, not financial - but it would matter a great deal
   if run with real capital.
-- **Backtested**: 489 trades over 4.63 years (2022-2026), profit factor
-  1.400 (was 1.501 at 10% sizing - position sizing doesn't change PF in a
-  perfectly linear way once compounding and commission drag are in play),
-  win rate 48.26%, profitable in 4 of 5 calendar years.
+- **Backtested, rule-only**: 489 trades over 4.63 years (2022-2026), profit
+  factor 1.400, win rate 48.26%, profitable in 4 of 5 calendar years.
+- **Backtested, rule + ML gate (currently deployed)**: 261 trades over the
+  same period, profit factor 2.113, win rate 57.85%, **CAGR 8.66%/yr, max
+  drawdown only -4.22%** - lower return than the rule alone, but roughly
+  4x less drawdown for it. See "ML entry filter" for why this tradeoff was
+  chosen and what it's actually validated on.
+
+## ML entry filter: what it is, and the honest limits of the evidence
+
+Trained on every historical near-PDH/PDL touch (not just the ones that
+passed the rule), using the same features the rule's score is built from
+plus the ones the rule doesn't see (candlestick pattern *type*, not just a
+collapsed yes/no; volume ratio; RSI/ATR levels; hour/day-of-week). The
+model's raw AUC across ALL touches is weak (~0.50-0.52 - essentially no
+better than chance at predicting "is this setup ever worth taking"). Its
+real, validated use is narrower: **as a secondary filter applied only to
+setups that already pass the rule**, its predicted probability correlates
+with real outcome quality, out-of-sample:
+
+| Threshold | Trades (test period) | Win rate | Profit factor | CAGR | Max DD |
+|---|---|---|---|---|---|
+| none (rule only) | 159 | 45.3% | 0.91 | -2.53% | -9.5% |
+| >= 0.49 | 113 | 41.6% | 0.90 | -1.60% | -4.6% |
+| >= 0.52 | 100 | 39.0% | 0.89 | -1.70% | -4.1% |
+| **>= 0.55 (deployed)** | **75** | **46.7%** | **1.02** | **+0.15%** | **-2.8%** |
+| >= 0.60 | 48 | 68.8% | 2.02 | +3.42% | -1.5% |
+
+This table is computed on the genuinely out-of-sample test period
+(2025-06-01 onward, which the model never saw during training), using a
+sequential, position-exclusive backtest through the real live engine
+(`validate_ml_filter.py`, via a `ml_gate` hook added to
+`backtest_pdh_pdl.step_bar` - default `None`, zero effect unless supplied,
+so this never changed the underlying rule's own behavior).
+
+**Two honest caveats**: (1) the deployed threshold (0.55) is validated on
+only 75 out-of-sample trades - real, but a small sample; the more
+attractive 0.60 row is smaller still (48 trades) and more likely to be
+partly noise, which is why 0.55 was chosen over it. (2) A recent, separate
+finding: the rule *alone* actually lost money over the same 2025-06 to
+2026-09 stretch (CAGR -2.53%), a sharp reversal from the full 4.6-year
+average - consistent with the already-known "profitable in 4 of 5 calendar
+years" profile, but notable because live forward paper trading is starting
+right as that softer stretch ends.
+
+**Book-informed feature expansion, tried and NOT adopted**: at the user's
+request, ~30 additional indicators drawn directly from five trading books
+(`books/`) were implemented and tested as an expanded feature set:
+- *Japanese Candlestick Charting Techniques* (Nison): granular pattern
+  flags (Harami, Harami Cross, Dark Cloud Cover, Piercing Pattern, Three
+  Black Crows/White Soldiers, Tweezers) in place of the rule's collapsed
+  bearish/bullish-candle flags.
+- *The New Trading for a Living* (Elder): Force Index (2-day/13-day EMA of
+  volume × price change), the Impulse System (EMA-13 slope + MACD-Histogram
+  slope alignment), and RSI/price divergence.
+- *Technical Analysis of the Financial Markets* (Murphy): Stochastic
+  Oscillator, Bollinger %B, ADX trend strength.
+
+Result: AUC was statistically unchanged (0.495/0.522 vs. 0.4925/0.5197),
+and the sequential validation was *noisier* - not monotonic across
+thresholds the way the simpler model is. **The leaner, original feature
+set is what's actually deployed.** (*Trading in the Zone*'s "probabilistic
+mindset" and *Market Wizards*' risk-discipline lessons are reflected in the
+approach itself - a probability-gated filter and a fixed, non-discretionary
+position size - rather than as numeric features. Elder's own risk
+framework, a 2% max-risk-per-trade rule, is worth naming honestly against
+this bot's 60% sizing - it would call that reckless; that sizing was kept
+because hitting the stated 12%/year target requires it, and this is a
+simulator.)
+
+`ml_filter.py` holds the ONE shared implementation of the gate's
+feature-row construction, imported by both `paper_trade.py` (live) and
+`validate_ml_filter.py` (validation) - an earlier standalone
+reconstruction of the rule's scoring logic for evaluation purposes
+silently diverged from the real engine (missed the fired-flag spam
+suppression, breakout protection, and a market-structure condition) and
+produced nonsense results (fake 50,000%+ backtested "returns") before this
+was caught and fixed.
 
 ## How it works
 
