@@ -25,7 +25,20 @@ jobs:
       - run: pip install -r requirements.txt
 
       - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sh
+        run: |
+          # `curl | sh` masks a curl failure (sh gets empty stdin, exits 0) -
+          # confirmed on a real sharded run: a transient "Connection reset by
+          # peer" left this step reporting "success" with nothing installed,
+          # and the real failure only surfaced two steps later at `ollama
+          # pull` ("command not found"). set -o pipefail + a retry + an
+          # explicit post-check makes this fail fast and self-heal instead.
+          set -o pipefail
+          for i in 1 2 3; do
+            curl -fsSL https://ollama.com/install.sh | sh && break
+            echo "Install attempt $i failed, retrying..." >&2
+            sleep 5
+          done
+          command -v ollama
 
       - name: Start Ollama server
         run: |
