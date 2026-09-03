@@ -8,6 +8,17 @@ account, and **no real money at any point**.
 See [`STATUS.md`](STATUS.md) for the current simulated position, equity,
 and recent trades — rewritten every run.
 
+**Balance note**: live equity was reset to $100 on 2026-09-03. The first
+deployment's equity (grown to $146.93) came from replaying the 2022-2026
+historical backtest, not genuine forward trading - conflating the two made
+the live number misleading. Bot's market-structure memory (pivots, signal
+state) was preserved across the reset for continuity; only the balance and
+trade log restarted clean. The pre-reset trade history is archived at
+`data/trades_backtest_reference_pre_reset.csv` and all the backtest
+numbers throughout this README remain valid as the basis for the
+strategy's validated edge - they're just no longer shown as "the current
+balance."
+
 ## Current engine: rule-based + ML secondary filter, tuned for a 12%/year target
 
 - **Rule**: Zone 0.4% of level, 1H EMA-50 HTF trend filter, minimum

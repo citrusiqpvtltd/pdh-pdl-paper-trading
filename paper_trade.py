@@ -201,7 +201,7 @@ def write_status(state, last_bar_time, signals_this_run):
         cagr = ((state["equity"] / bt.INITIAL_CAPITAL) ** (1 / years) - 1) * 100
         eq_curve = bt.INITIAL_CAPITAL + all_trades.sort_values("exit_time")["pnl"].cumsum()
         max_dd = ((eq_curve - eq_curve.cummax()) / eq_curve.cummax()).min() * 100
-        lines.append("## All-Time Stats (backtest + live combined)\n")
+        lines.append("## Genuine Live Stats (since balance reset)\n")
         lines.append(f"- Total trades: {len(all_trades)}")
         lines.append(f"- Win rate: {len(wins)/len(all_trades)*100:.2f}%")
         lines.append(f"- Total PnL: {all_trades['pnl'].sum():.2f} USDT ({all_trades['pnl'].sum()/bt.INITIAL_CAPITAL*100:.2f}%)")
@@ -215,7 +215,18 @@ def write_status(state, last_bar_time, signals_this_run):
         for _, t in all_trades.tail(15).iloc[::-1].iterrows():
             lines.append(f"| {t['entry_time']} | {t['side']} | {t['reason']} | {t['entry_px']:.2f} | {t['exit_px']:.2f} | {t['pnl']:.2f} |")
     else:
-        lines.append("No trades yet.\n")
+        lines.append("## Genuine Live Stats (since balance reset)\n")
+        lines.append("No trades yet since the reset - equity is exactly the $100 starting balance.\n")
+
+    lines.append("\n## Balance reset\n")
+    lines.append("Equity was reset to $100 (from $146.93) because that growth came from replaying the "
+                 "2022-2026 historical backtest on first deployment, not from genuine forward trading. "
+                 "Pivot/signal state (market-structure memory) was preserved across the reset for signal "
+                 "continuity - only the balance and trade log restarted clean. The full backtest-validated "
+                 "trade history (532 trades over ~9 years at various configurations) remains in "
+                 "`data/trades_backtest_reference_pre_reset.csv` and is documented in full in README.md - "
+                 "it's still the basis for believing this strategy has an edge, just no longer conflated "
+                 "with the live dashboard number.\n")
 
     lines.append("\n## Reference: prior LLM-decided engine (archived)\n")
     lines.append("See `data/trades_llm_archive.csv` / `data/llm_decisions_archive.csv` - the LLM-judgment engine "
