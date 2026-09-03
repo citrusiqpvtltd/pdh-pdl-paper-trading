@@ -24,7 +24,6 @@
     163740
   ],
   "pivot_low_vals": [
-    77990.0,
     77962.49,
     77000.0,
     77392.0,
@@ -33,10 +32,10 @@
     77510.0,
     76420.0,
     76718.48,
-    76264.0
+    76264.0,
+    76968.0
   ],
   "pivot_low_bars": [
-    163406,
     163427,
     163482,
     163494,
@@ -45,13 +44,14 @@
     163633,
     163654,
     163682,
-    163718
+    163718,
+    163775
   ],
-  "sell_fired": false,
+  "sell_fired": true,
   "buy_fired": false,
-  "equity": 100.0,
+  "equity": 99.76026030614427,
   "position": null,
-  "last_processed_index": 163775,
+  "last_processed_index": 163787,
   "live_since": "2026-09-03 01:27:37.823155+00:00",
   "engine": "rule-based+ml-gate",
   "zone_pct": 0.4,
