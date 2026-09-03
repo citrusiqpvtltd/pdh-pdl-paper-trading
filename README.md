@@ -105,6 +105,53 @@ this bot's 60% sizing - it would call that reckless; that sizing was kept
 because hitting the stated 12%/year target requires it, and this is a
 simulator.)
 
+## Training window investigation: why "more history" made it worse
+
+Prompted by a 9-year backtest (see below) showing the deployed ML gate
+actively hurting performance in 2018, the model was retrained on the full
+~9 years of available data (2017-08 onward, vs the deployed model's
+2022-2025.06) to see whether more data would generalize better. It did
+not - it was worse at every threshold tested on the same genuinely
+out-of-sample period (2025-06 onward): e.g. at the deployed threshold
+(0.55), PF dropped from 1.018 to 0.859, despite the full-history model's
+slightly higher raw AUC (0.534 vs 0.520).
+
+**Root cause, confirmed with real numbers**: BTC's ATR% (volatility
+relative to price) has shrunk roughly 4x over this span - yearly averages
+fall from ~1.0% (2017) to ~0.26% (2025-2026), a genuine market-maturation
+effect, not a data bug. `atr_pct` (and other absolute-scale features) feed
+into the tree model as raw numbers, so training equally across eras with
+very different volatility regimes teaches splits calibrated to conditions
+that barely exist anymore.
+
+**First fix tried - exponential recency weighting** (`sample_weight` decay
+by row age, `train_full_history_model.py`): did NOT work. Subset AUC got
+*worse* (0.54-0.57 across half-lives of 180/365/730 days) than even the
+plain unweighted full-history model (0.622). Cause:
+`HistGradientBoostingClassifier` bins continuous features into quantiles
+computed from the full, unweighted training array - so old rows still
+consume bin resolution for `atr_pct` even when their contribution to the
+loss is down-weighted, blunting precision in today's much narrower
+volatility range. Down-weighting the loss doesn't fix binning resolution.
+
+**Second check - hard training-window sweep** (`sweep_train_window.py`):
+swept fixed-length training windows (1, 1.5, 2, 3, 3.45, 4 years) ending
+at the same holdout boundary. Subset AUC rose with window length up to
+~3-3.45 years (peaking at the deployed model's *exact* window, 0.625),
+then fell again by 4 years - confirming the deployed window sits at the
+sweet spot, not undershooting it. Verified this held in the real
+sequential, position-exclusive backtest too, not just AUC: the two
+closest contenders (3yr, 3.45yr) both did *worse* than deployed (PF 0.608
+and 0.765 vs deployed's 1.018).
+
+**Conclusion: no change to the live model.** The full-history approach
+itself was the mistake (too much stale-regime data), not the deployed
+model - which turns out to already sit at a locally optimal training
+window among everything tested. `build_full_history_dataset.py`,
+`train_full_history_model.py`, and `sweep_train_window.py` are kept as
+reference for this investigation; none of their output models are
+deployed.
+
 ## Retraining: scheduled, NOT self-learning
 
 There is no online/incremental learning here - the model never updates
