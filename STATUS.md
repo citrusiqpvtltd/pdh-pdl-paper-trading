@@ -1,26 +1,28 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading (rule-based + ML secondary filter)
 
-_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 60% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-09-13T01:14:29.308266+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 60% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-09-13T06:10:58.966140+00:00_
 
 ## Current State
 
-- Equity: **99.64 USDT** (started at 100.00)
-- Last processed bar: 2026-09-13 00:45:00+00:00
+- Equity: **99.57 USDT** (started at 100.00)
+- Last processed bar: 2026-09-13 05:45:00+00:00
 - Position: **flat**
+- Signal(s) this run: ['SELL score 3/6 @ 77283.75 (2026-09-13T01:00:00.000)']
 
 ## Genuine Live Stats (since balance reset)
 
-- Total trades: 2
+- Total trades: 3
 - Win rate: 0.00%
-- Total PnL: -0.36 USDT (-0.36%)
+- Total PnL: -0.43 USDT (-0.43%)
 - Profit factor: 0.000
-- CAGR: -30.18%/year (target: 12%/year)
-- Max drawdown: -0.12%
+- CAGR: -16.08%/year (target: 12%/year)
+- Max drawdown: -0.19%
 
 ## Most Recent Trades
 
 | Entry time | Side | Exit reason | Entry | Exit | PnL |
 |---|---|---|---|---|---|
+| 2026-09-13 01:00:00 | short | SL | 77283.74 | 77300.06 | -0.07 |
 | 2026-09-06 06:45:00 | long | SL | 79784.66 | 79705.98 | -0.12 |
 | 2026-09-03 01:30:00 | short | SL | 77350.46 | 77582.06 | -0.24 |
 
