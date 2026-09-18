@@ -51,7 +51,7 @@
   "buy_fired": false,
   "equity": 99.33852257044089,
   "position": null,
-  "last_processed_index": 165232,
+  "last_processed_index": 165250,
   "live_since": "2026-09-03 01:27:37.823155+00:00",
   "engine": "rule-based+ml-gate",
   "zone_pct": 0.4,
