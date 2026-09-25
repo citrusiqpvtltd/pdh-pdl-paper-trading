@@ -62,7 +62,7 @@
     "tp1_filled": false,
     "entry_comm_total": 0.029857992435624613
   },
-  "last_processed_index": 165958,
+  "last_processed_index": 165971,
   "live_since": "2026-09-03 01:27:37.823155+00:00",
   "engine": "rule-based+ml-gate",
   "zone_pct": 0.4,
