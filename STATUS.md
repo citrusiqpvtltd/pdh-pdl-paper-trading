@@ -1,11 +1,11 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading (rule-based + ML secondary filter)
 
-_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 60% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-09-26T10:06:39.366157+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 60% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-09-26T14:27:46.842755+00:00_
 
 ## Current State
 
 - Equity: **99.50 USDT** (started at 100.00)
-- Last processed bar: 2026-09-26 09:45:00+00:00
+- Last processed bar: 2026-09-26 14:00:00+00:00
 - Position: **SHORT** 0.000710 BTC @ 84104.21 (SL 84888.05, TP1 82536.56, TP2 80968.90, TP1 filled: False)
 
 ## Genuine Live Stats (since balance reset)
