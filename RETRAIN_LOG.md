@@ -16,3 +16,10 @@ Each entry is one scheduled retrain run (see `.github/workflows/retrain_ml_filte
 - Holdout result at threshold 0.55: 53 trades, win rate 41.5%, PF 0.766, CAGR -3.78%, max DD -5.91%
 - **SKIPPED**: PF 0.766 below floor 0.9 on its own holdout - kept existing model
 
+## 2026-10-01T09:37:13.542611+00:00
+
+- Holdout window: 2026-01-03 to 2026-09-30 (270 days, rolling)
+- Trained on 41725 rows before the holdout
+- Holdout result at threshold 0.55: 48 trades, win rate 43.8%, PF 1.202, CAGR 2.42%, max DD -3.21%
+- **DEPLOYED**: cleared floor (PF 1.202 >= 0.9, 48 >= 30 trades)
+
