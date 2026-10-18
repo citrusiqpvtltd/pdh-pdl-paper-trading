@@ -72,7 +72,7 @@ STEP_KWARGS = dict(
     score_threshold=3, rr1=2.0, rr2=4.0, sl_method="Swing", tp2_enabled=True,
     use_htf_filter=True, enable_breakout_protection=True,
 )
-QTY_PCT_OF_EQUITY = 0.60  # see module docstring - the real lever for the 12%/year target
+QTY_PCT_OF_EQUITY = 1.00  # see module docstring - backtested: CAGR 19.94%/yr, max DD -25.12%
 
 ML_FILTER_FILE = "ml_entry_filter.joblib"
 ML_GATE_THRESHOLD = 0.55  # see module docstring - the validated breakeven-or-better threshold
