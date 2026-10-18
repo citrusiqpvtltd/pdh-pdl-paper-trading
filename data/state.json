@@ -67,7 +67,7 @@
   "engine": "rule-based+ml-gate",
   "zone_pct": 0.4,
   "htf_rule": "1h",
-  "qty_pct_of_equity": 0.6,
+  "qty_pct_of_equity": 1.0,
   "ml_gate_threshold": 0.55,
   "score_threshold": 3,
   "rr1": 2.0,
