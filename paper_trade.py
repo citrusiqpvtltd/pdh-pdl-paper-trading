@@ -25,10 +25,12 @@ the actual goal is a 12%/year return target, not just PF>1):
   - Zone 0.4% of level, 1H HTF EMA-50 trend filter, min score 3/6,
     Swing-based SL, 2R/4R partial take-profits.
   - Backtested: PF 1.501, CAGR 2.02%/year, max DD -2.80% at 10% sizing.
-  - Position size scaled to 60% of equity per trade to hit the stated
-    12%/year target - backtested at that size: CAGR 12.05%/year, max
-    drawdown -15.82%. This is a real, quantified risk tradeoff, not a free
-    lunch: the higher return comes with a much rougher equity curve.
+  - Position size scaled to 60% of equity per trade to originally hit the
+    12%/year target (CAGR 12.05%/year, max drawdown -15.82%); since
+    increased to 100% (paper money, no real capital) - backtested at
+    that size: CAGR 19.94%/year, max drawdown -25.12%. This is a real,
+    quantified risk tradeoff, not a free lunch: higher return comes with
+    a much rougher equity curve.
   - ML secondary filter (ml_entry_filter.joblib, via ml_gate): a
     HistGradientBoostingClassifier trained on 49,619 historical near-PDH/PDL
     touches (build_ml_dataset.py / train_ml_model.py) gates entries ON TOP
@@ -176,8 +178,9 @@ def write_status(state, last_bar_time, signals_this_run):
     lines.append("# PDH/PDL Confluence Reversal — Live Paper Trading (rule-based + ML secondary filter)\n")
     lines.append(f"_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF "
                  f"rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold "
-                 f"{ML_GATE_THRESHOLD}) - see README for how these parameters, the 60% position size, and the "
-                 f"ML gate were chosen (target: 12%/year). Last updated: {datetime.now(timezone.utc).isoformat()}_\n")
+                 f"{ML_GATE_THRESHOLD}) - see README for how these parameters, the {QTY_PCT_OF_EQUITY*100:.0f}% "
+                 f"position size, and the ML gate were chosen (target: 12%/year). "
+                 f"Last updated: {datetime.now(timezone.utc).isoformat()}_\n")
     lines.append("## Current State\n")
     lines.append(f"- Equity: **{state['equity']:.2f} USDT** (started at {bt.INITIAL_CAPITAL:.2f})")
     lines.append(f"- Last processed bar: {last_bar_time}")
