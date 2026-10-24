@@ -1,26 +1,27 @@
 # PDH/PDL Confluence Reversal — Live Paper Trading (rule-based + ML secondary filter)
 
-_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 100% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-10-24T15:22:57.578694+00:00_
+_Simulator only. No real money, no exchange account, no API keys. Deterministic score>=3+HTF rule, entries additionally gated by a trained ML filter (ml_entry_filter.joblib, threshold 0.55) - see README for how these parameters, the 100% position size, and the ML gate were chosen (target: 12%/year). Last updated: 2026-10-24T15:40:45.005629+00:00_
 
 ## Current State
 
-- Equity: **98.88 USDT** (started at 100.00)
-- Last processed bar: 2026-10-24 15:00:00+00:00
-- Position: **SHORT** 0.000702 BTC @ 84584.73 (SL 87220.05, TP1 79314.12, TP2 74043.50, TP1 filled: False)
+- Equity: **100.72 USDT** (started at 100.00)
+- Last processed bar: 2026-10-24 15:15:00+00:00
+- Position: **SHORT** 0.000351 BTC @ 84584.73 (SL 87220.05, TP1 79314.12, TP2 74043.50, TP1 filled: True)
 
 ## Genuine Live Stats (since balance reset)
 
-- Total trades: 8
-- Win rate: 25.00%
-- Total PnL: -1.09 USDT (-1.09%)
-- Profit factor: 0.283
-- CAGR: -15.75%/year (target: 12%/year)
+- Total trades: 9
+- Win rate: 33.33%
+- Total PnL: 0.73 USDT (0.73%)
+- Profit factor: 1.481
+- CAGR: 5.24%/year (target: 12%/year)
 - Max drawdown: -0.85%
 
 ## Most Recent Trades
 
 | Entry time | Side | Exit reason | Entry | Exit | PnL |
 |---|---|---|---|---|---|
+| 2026-10-02 17:15:00 | short | TP1 | 84584.73 | 79314.12 | 1.82 |
 | 2026-09-25 13:15:00 | short | SL | 84104.21 | 84888.06 | -0.62 |
 | 2026-09-25 02:15:00 | short | TP2 | 84692.00 | 83763.81 | 0.30 |
 | 2026-09-25 02:15:00 | short | TP1 | 84692.00 | 84227.91 | 0.13 |
